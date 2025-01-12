@@ -15,7 +15,7 @@ int event_handler(void *userdata, SDL_Event *event)
 
 int main()
 {
-    auto ofstream = std::ofstream("tmp.png");
+    auto ofstream = std::ofstream("tmp1.png", std::ios::out | std::ios::binary);
     auto session = cpr::Session();
     session.SetUrl(cpr::Url{"https://a.tile.openstreetmap.org/0/0/0.png"});
     auto response = session.Download(ofstream);
