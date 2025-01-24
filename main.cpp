@@ -1,7 +1,10 @@
 #include "main.h"
 
 
+/// @brief Размер поверхности для рисования
 vec2 canvas_size {1024.0f, 768.0f};
+
+/// @brief Текущая позиция WebMercator
 vec3 xyz {0.0f, 0.0f, 0.0f};
 
 
@@ -43,7 +46,7 @@ int main(int argc, char* argv[])
     Uint32 render_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE;
     SDL_Renderer *render = SDL_CreateRenderer(sdlw, -1, render_flags);
 
-    rc = IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG | IMG_INIT_TIF | IMG_INIT_WEBP | IMG_INIT_JXL | IMG_INIT_AVIF);
+    rc = IMG_Init(IMG_INIT_EVERYTHING);
     if (rc != IMG_INIT_PNG)
     {
         const char* err_str = SDL_GetError();
