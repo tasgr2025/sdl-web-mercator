@@ -7,6 +7,12 @@ const float tile_height = 256.0f;
 using namespace glm;
 
 
+vec2 get_tile_size()
+{
+    return {tile_width, tile_height};
+}
+
+
 int sign(float val)
 {
     return (0.0f < val) - (val < 0.0f);

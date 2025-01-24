@@ -8,6 +8,8 @@ using namespace glm;
 
 int sign(float val);
 
+vec2 get_tile_size();
+
 // convert lon/lat to world coords
 vec2 lonlat_to_world(vec2 &ll);
 float deg_to_rad(float v);
