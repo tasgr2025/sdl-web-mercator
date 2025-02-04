@@ -1,11 +1,32 @@
 #include "main.h"
 
+/// @brief Флаги инициализации SDL
+static const int IMG_INIT_EVERYTHING = IMG_INIT_JPG | IMG_INIT_PNG | IMG_INIT_TIF | IMG_INIT_WEBP | IMG_INIT_JXL | IMG_INIT_AVIF;
+
+/// @brief Шаблон адреса для загрузки плиток
+static const char* base_url = "https://tile.openstreetmap.org/{}/{}/{}.png";
 
 /// @brief Размер поверхности для рисования
 vec2 canvas_size {1024.0f, 768.0f};
 
 /// @brief Текущая позиция WebMercator
 vec3 xyz {0.0f, 0.0f, 0.0f};
+
+
+bool SDLTile::set_texture_from_data(SDL_Renderer *render, char *data, const size_t len) {
+    if (texture) {
+        SDL_DestroyTexture(texture);
+        texture = nullptr;
+    }
+    SDL_RWops* rwop = SDL_RWFromMem(data, len);
+    SDL_Surface *surface = IMG_Load_RW(rwop, 0);
+    if (!surface) {
+        return false;
+    }
+    texture = SDL_CreateTextureFromSurface(render, surface);
+    SDL_FreeSurface(surface);
+    return true;
+}
 
 
 int event_handler(void *userdata, SDL_Event *event)
@@ -61,6 +82,7 @@ int main(int argc, char* argv[])
     {
         texture = SDL_CreateTextureFromSurface(render, surface);
         SDL_FreeSurface(surface);
+        exit(1);
     }
 
     vec2 tile_size = get_tile_size();
@@ -93,6 +115,7 @@ int main(int argc, char* argv[])
             }
         }
     }
+
     SDL_DestroyWindow(sdlw);
     SDL_Quit();
     exit(EXIT_SUCCESS);

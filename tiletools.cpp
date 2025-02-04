@@ -1,8 +1,9 @@
 #include "tiletools.h"
 
 
-const float tile_width =  256.0f;
-const float tile_height = 256.0f;
+static const float tile_width =  256.0f;
+static const float tile_height = 256.0f;
+static const float R = 6372795.0f;
 
 using namespace glm;
 
@@ -30,15 +31,15 @@ vec2 lonlat_to_world(const vec2 &ll)
    float x = ll.x / 180.0f;
    float latsin = sinf(deg_to_rad(ll.y) * sign(ll.y));
    float y = (sign(ll.y) * (logf((1.0f + latsin) / (1.0f - latsin)) / 2.0f)) / M_PI;
-   return vec2(x, y);
+   return {x, y};
 }
 
 
 // convert lon/lat to screen coords
-vec2 lonlat_to_screen(const vec3 &xyz, const vec2 &ll, const vec2 &cs)
+vec2 lonlat_to_screen(const vec3 &xyz, const vec2 &canvas_size, const vec2 &ll)
 {
     vec2 wp = lonlat_to_world(ll);
-    return world_to_screen(xyz, wp, cs);
+    return world_to_screen(xyz, wp, canvas_size);
 }
 
 
@@ -53,7 +54,7 @@ vec2 world_to_lonlat(float wx, float wy)
 {
     float lon = wx * 180.0f;
     float lat = rad_to_deg(atan(sinh(wy * M_PI)));
-    return vec2(lon, lat);
+    return {lon, lat};
 }
 
 
@@ -61,11 +62,9 @@ vec2 world_to_lonlat(float wx, float wy)
 vec2 world_to_tile(float wx, float wy, float z)
 {
     float n = pow(2.0, floorf(z));
-    float tx = ((wx + 1.0f) / 2.0f) * n;
-    float ty = ((-wy + 1.0f) / 2.0f) * n;
-    tx = floorf(tx);
-    ty = floorf(ty);
-    return vec2(tx, ty);
+    float tx = floorf((( wx + 1.0f) / 2.0f) * n);
+    float ty = floorf(((-wy + 1.0f) / 2.0f) * n);
+    return {tx, ty};
 }
 
 
@@ -105,11 +104,10 @@ vec2 screen_to_world(const vec3 &xyz, const vec2 &canvas_size, const vec2 &scree
     float yr = py / span_h;
     float x = (xr * 2.0f - 1.0f) + xyz.x;
     float y = ((-yr * 2.0f) + 1.0f) + xyz.y;
-    return vec2(x, y);
+    return {x, y};
 }
 
 
-// convert screen coords to tile coords
 vec2 screen_to_tile(const vec3 &xyz, const vec2 &canvas_size, const vec2 &screen_coords)
 {
     vec2 world = screen_to_world(xyz, canvas_size, screen_coords);
@@ -131,28 +129,48 @@ vec2 tile_to_world(float tx, float ty, float tz)
     float n = powf(2.0f, floorf(tz));
     float x = (tx / n) * 2.0f - 1.0f;
     float y = -((ty / n) * 2.0f - 1.0f);
-    return vec2(x, y);
+    return {x, y};
 }
 
 
-// convert world coords to screen coords
 vec2 world_to_screen(const vec3 &xyz, const vec2 &canvas_size, const vec2 &world_coords)
 {   
     float n = powf(2.0f, xyz.z);
     float w = n * tile_width;
     float h = n * tile_height;
-    float xr = ((world_coords.x - xyz.x) + 1.0f) / 2.0f;
+    float xr = ( (world_coords.x - xyz.x) + 1.0f) / 2.0f;
     float yr = (-(world_coords.y - xyz.y) + 1.0f) / 2.0f;
     float x = w * xr - w / 2.0f + canvas_size.x / 2.0f;
     float y = h * yr - h / 2.0f + canvas_size.y / 2.0f;
-    return vec2(x, y);
+    return {x, y};
 }
 
 
-// get the tile index from xyz tile coords
-uint32 xyz_to_idx(float x, float y, float z)
+uint32 tile_to_idx(float tx, float ty, float tz)
 {
-    float i = (powf(4.0f, z) - 1.0f) / 3.0f;
-    float n = powf(2.0f, z);
-    return int(i + (y * n + x));
+    float i = (powf(4.0f, tz) - 1.0f) / 3.0f;
+    float n = powf(2.0f, tz);
+    return static_cast<uint32>(i + (ty * n + tx));
+}
+
+
+float haversine_m(float lat1, float lon1, float lat2, float lon2) {
+    // Преобразование градусов в радианы
+    float rlat1 = deg_to_rad(lat1);
+    float rlon1 = deg_to_rad(lon1);
+    float rlat2 = deg_to_rad(lat2);
+    float rlon2 = deg_to_rad(lon2);
+    float cl1 = cosf(rlat1);
+    float cl2 = cosf(rlat2);
+    float sl1 = sinf(rlat1);
+    float sl2 = sinf(rlat2);
+    float delta = rlon2 - rlon1;
+    float cdelta = cosf(delta);
+    float sdelta = sinf(delta);
+    // Вычисление длины большого круга
+    float y = sqrtf(powf(cl2 * sdelta, 2.0f) + powf(cl1 * sl2 - sl1 * cl2 * cdelta, 2.0f));
+    float x = sl1 * sl2 + cl1 * cl2 * cdelta;
+    float ad = atan2f(y, x);
+    float dist = ad * R;
+    return dist;
 }
