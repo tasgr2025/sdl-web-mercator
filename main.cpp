@@ -16,6 +16,9 @@ bool SDLTile::set_texture_from_data(SDL_Renderer *render, const char *data, cons
         texture = nullptr;
     }
     SDL_RWops* rwop = SDL_RWFromConstMem(data, len);
+    if (!rwop) {
+        return false;
+    }
     SDL_Surface *surface = IMG_Load_RW(rwop, 0);
     if (!surface) {
         return false;
@@ -48,11 +51,11 @@ int event_handler(void *userdata, SDL_Event *event)
 int main(int argc, char* argv[]) {
     SDL_version ver;
     SDL_GetVersion(&ver);
-    printf("sdl version:\"%u.%u.%u\"\n", ver.major, ver.minor, ver.patch);
+    printf("Версия SDL:\"%u.%u.%u\"\n", ver.major, ver.minor, ver.patch);
     int rc = SDL_Init(SDL_INIT_EVERYTHING);
     if (rc < 0) {
         const char* err_str = SDL_GetError();
-        printf("%s:%u: sdl2:\"%s\"\n", __FILE__, __LINE__,  err_str);
+        printf("%s:%u: \"%s\"\n", __FILE__, __LINE__,  err_str);
         exit(rc);
     }
     
@@ -66,7 +69,7 @@ int main(int argc, char* argv[]) {
     rc = IMG_Init(IMG_INIT_EVERYTHING);
     if (!(rc & IMG_INIT_PNG)) {
         const char* err_str = SDL_GetError();
-        printf("%s:%u: sdl2:\"%s\"\n", __FILE__, __LINE__,  err_str);
+        printf("%s:%u: \"%s\"\n", __FILE__, __LINE__,  err_str);
         exit(1);
     }
     cpr::Response r = cpr::Get(cpr::Url{"https://a.tile.openstreetmap.org/0/0/0.png"});
@@ -74,13 +77,19 @@ int main(int argc, char* argv[]) {
     SDL_Surface *surface = IMG_Load_RW(rwop, 0);
     if (!surface) {
         const char* err_str = SDL_GetError();
-        printf("%s:%u: sdl2:\"%s\"\n", __FILE__, __LINE__,  err_str);
+        printf("%s:%u: \"%s\"\n", __FILE__, __LINE__,  err_str);
+        exit(1);
+    }
+    rc = SDL_RWclose(rwop);
+    if (rc) {
+        const char* err_str = SDL_GetError();
+        printf("%s:%u: \"%s\"\n", __FILE__, __LINE__,  err_str);
         exit(1);
     }
     SDL_Texture *texture = SDL_CreateTextureFromSurface(render, surface);
     if (!texture) {
         const char* err_str = SDL_GetError();
-        printf("%s:%u: sdl2:\"%s\"\n", __FILE__, __LINE__,  err_str);
+        printf("%s:%u: \"%s\"\n", __FILE__, __LINE__,  err_str);
         exit(1);
     }
     SDL_FreeSurface(surface);
@@ -99,7 +108,7 @@ int main(int argc, char* argv[]) {
         int rc = SDL_WaitEvent(&sdle);
         if (rc == 0) {
             const char* err_str = SDL_GetError();
-            printf("%s:%u: sdl2:\"%s\"\n", __FILE__, __LINE__,  err_str);
+            printf("%s:%u: \"%s\"\n", __FILE__, __LINE__,  err_str);
             break;
         }
         else if (sdle.type == SDL_WINDOWEVENT) {
