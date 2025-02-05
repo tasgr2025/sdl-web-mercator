@@ -33,8 +33,7 @@ bool SDLTile::set_texture_from_data(SDL_Renderer *render, const char *data, cons
 int event_handler(void *userdata, SDL_Event *event)
 {
     static uint32_t tick0;
-    if (event->type == SDL_MOUSEMOTION)
-    {
+    if (event->type == SDL_MOUSEMOTION) {
         int x, y;
         SDL_GetMouseState(&x, &y);
         uint32_t tick1 = SDL_GetTicks();
@@ -49,14 +48,13 @@ int event_handler(void *userdata, SDL_Event *event)
 
 
 int main(int argc, char* argv[]) {
+    setlocale(LC_ALL, "ru");
     SDL_version ver;
     SDL_GetVersion(&ver);
     printf("Версия SDL:\"%u.%u.%u\"\n", ver.major, ver.minor, ver.patch);
     int rc = SDL_Init(SDL_INIT_EVERYTHING);
     if (rc < 0) {
-        const char* err_str = SDL_GetError();
-        printf("%s:%u: \"%s\"\n", __FILE__, __LINE__,  err_str);
-        exit(rc);
+        exit_on_sdl_error();
     }
     
     SDL_Window* sdlw = SDL_CreateWindow(
@@ -65,32 +63,29 @@ int main(int argc, char* argv[]) {
         canvas_size.x, canvas_size.y, SDL_WINDOW_OPENGL);
     Uint32 render_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE;
     SDL_Renderer *render = SDL_CreateRenderer(sdlw, -1, render_flags);
-
+    if (!render) {
+        exit_on_sdl_error();
+    }
     rc = IMG_Init(IMG_INIT_EVERYTHING);
-    if (!(rc & IMG_INIT_PNG)) {
-        const char* err_str = SDL_GetError();
-        printf("%s:%u: \"%s\"\n", __FILE__, __LINE__,  err_str);
-        exit(1);
+    if (!(rc & IMG_INIT_PNG))  {
+        exit_on_sdl_error();
     }
     cpr::Response r = cpr::Get(cpr::Url{"https://a.tile.openstreetmap.org/0/0/0.png"});
     SDL_RWops* rwop = SDL_RWFromConstMem(r.text.data(), r.text.size());
+    if (!rwop) {
+        exit_on_sdl_error();
+    }
     SDL_Surface *surface = IMG_Load_RW(rwop, 0);
     if (!surface) {
-        const char* err_str = SDL_GetError();
-        printf("%s:%u: \"%s\"\n", __FILE__, __LINE__,  err_str);
-        exit(1);
+        exit_on_sdl_error();
     }
     rc = SDL_RWclose(rwop);
     if (rc) {
-        const char* err_str = SDL_GetError();
-        printf("%s:%u: \"%s\"\n", __FILE__, __LINE__,  err_str);
-        exit(1);
+        exit_on_sdl_error();
     }
     SDL_Texture *texture = SDL_CreateTextureFromSurface(render, surface);
     if (!texture) {
-        const char* err_str = SDL_GetError();
-        printf("%s:%u: \"%s\"\n", __FILE__, __LINE__,  err_str);
-        exit(1);
+        exit_on_sdl_error();
     }
     SDL_FreeSurface(surface);
 
@@ -107,9 +102,7 @@ int main(int argc, char* argv[]) {
     while (sdle.type != SDL_QUIT) {
         int rc = SDL_WaitEvent(&sdle);
         if (rc == 0) {
-            const char* err_str = SDL_GetError();
-            printf("%s:%u: \"%s\"\n", __FILE__, __LINE__,  err_str);
-            break;
+            exit_on_sdl_error();
         }
         else if (sdle.type == SDL_WINDOWEVENT) {
             if (sdle.window.event == SDL_WINDOWEVENT_EXPOSED) {
