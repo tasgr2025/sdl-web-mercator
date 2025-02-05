@@ -20,7 +20,7 @@ int event_handler(void *userdata, SDL_Event *event);
 static const char* base_url = "https://tile.openstreetmap.org/{}/{}/{}.png";
 
 
-#define exit_on_sdl_error() {printf("%s:%u: \"%s\"\n", __FILE__, __LINE__, SDL_GetError()); exit(1);}
+#define exit_on_sdl_error() { printf("%s:%u: \"%s\"\n", __FILE__, __LINE__, SDL_GetError()); exit(1); }
 
 class SDLTile {
     uint32_t i, x, y, z, t;
