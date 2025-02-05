@@ -4,10 +4,10 @@
 static const int IMG_INIT_EVERYTHING = IMG_INIT_JPG | IMG_INIT_PNG | IMG_INIT_TIF | IMG_INIT_WEBP | IMG_INIT_JXL | IMG_INIT_AVIF;
 
 /// @brief Размер поверхности для рисования
-vec2 canvas_size {1024.0f, 768.0f};
+vec2 canvas_size { 1024.0f, 768.0f };
 
 /// @brief Текущая позиция WebMercator
-vec3 xyz {0.0f, 0.0f, 0.0f};
+vec3 xyz { 0.0f, 0.0f, 0.0f };
 
 
 bool SDLTile::set_texture_from_data(SDL_Renderer *render, const char *data, const size_t len) {
@@ -30,8 +30,7 @@ bool SDLTile::set_texture_from_data(SDL_Renderer *render, const char *data, cons
 }
 
 
-int event_handler(void *userdata, SDL_Event *event)
-{
+int event_handler(void *userdata, SDL_Event *event) {
     static uint32_t tick0;
     if (event->type == SDL_MOUSEMOTION) {
         int x, y;
@@ -49,6 +48,13 @@ int event_handler(void *userdata, SDL_Event *event)
 
 int main(int argc, char* argv[]) {
     setlocale(LC_ALL, "ru");
+
+    CLI::App app{"App description"};
+    argv = app.ensure_utf8(argv);
+    std::string filename = "default";
+    app.add_option("-f,--file", filename, "A help string");
+    CLI11_PARSE(app, argc, argv);
+    printf("%s\n", filename.c_str());
     SDL_version ver;
     SDL_GetVersion(&ver);
     printf("Версия SDL:\"%u.%u.%u\"\n", ver.major, ver.minor, ver.patch);
@@ -56,7 +62,6 @@ int main(int argc, char* argv[]) {
     if (rc < 0) {
         exit_on_sdl_error();
     }
-    
     SDL_Window* sdlw = SDL_CreateWindow(
         "Обзор карты WEB Mercator",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,

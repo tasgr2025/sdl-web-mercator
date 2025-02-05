@@ -6,6 +6,7 @@
 #include <SDL.h>
 #include <SDL_image.h>
 #include <cpr/cpr.h>
+#include <CLI.hpp>
 
 #include "tiletools.h"
 

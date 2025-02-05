@@ -23,18 +23,23 @@ FetchContent_Declare(
     SDL2_IMAGE
     GIT_REPOSITORY  https://github.com/libsdl-org/SDL_image
     GIT_TAG         "release-2.8.4"
-    GIT_PROGRESS    TRUE
-)
+    GIT_PROGRESS    TRUE)
 
 FetchContent_Declare(
     glm
     GIT_REPOSITORY "https://github.com/g-truc/glm.git"
     GIT_TAG "1.0.1")
 
-FetchContent_MakeAvailable(cpr SDL2 SDL2_IMAGE glm)
+FetchContent_Declare(
+    CLI11
+    GIT_REPOSITORY "https://github.com/CLIUtils/CLI11.git"
+    GIT_TAG "v2.4.2")
+
+FetchContent_MakeAvailable(cpr SDL2 SDL2_IMAGE glm CLI11)
 
 include_directories("${sdl2_SOURCE_DIR}/include")
 include_directories("${glm_SOURCE_DIR}")
+include_directories("${cli11_SOURCE_DIR}/include/CLI")
 
 file(GLOB SOURCES "*.cpp")
 add_executable(${PROJECT_NAME} ${SOURCES})
