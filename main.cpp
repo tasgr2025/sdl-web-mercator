@@ -3,9 +3,6 @@
 /// @brief Флаги инициализации SDL
 static const int IMG_INIT_EVERYTHING = IMG_INIT_JPG | IMG_INIT_PNG | IMG_INIT_TIF | IMG_INIT_WEBP | IMG_INIT_JXL | IMG_INIT_AVIF;
 
-/// @brief Шаблон адреса для загрузки плиток
-static const char* base_url = "https://tile.openstreetmap.org/{}/{}/{}.png";
-
 /// @brief Размер поверхности для рисования
 vec2 canvas_size {1024.0f, 768.0f};
 
@@ -13,18 +10,19 @@ vec2 canvas_size {1024.0f, 768.0f};
 vec3 xyz {0.0f, 0.0f, 0.0f};
 
 
-bool SDLTile::set_texture_from_data(SDL_Renderer *render, char *data, const size_t len) {
+bool SDLTile::set_texture_from_data(SDL_Renderer *render, const char *data, const size_t len) {
     if (texture) {
         SDL_DestroyTexture(texture);
         texture = nullptr;
     }
-    SDL_RWops* rwop = SDL_RWFromMem(data, len);
+    SDL_RWops* rwop = SDL_RWFromConstMem(data, len);
     SDL_Surface *surface = IMG_Load_RW(rwop, 0);
     if (!surface) {
         return false;
     }
     texture = SDL_CreateTextureFromSurface(render, surface);
     SDL_FreeSurface(surface);
+    SDL_RWclose(rwop);
     return true;
 }
 
@@ -47,14 +45,12 @@ int event_handler(void *userdata, SDL_Event *event)
 }
 
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     SDL_version ver;
     SDL_GetVersion(&ver);
     printf("sdl version:\"%u.%u.%u\"\n", ver.major, ver.minor, ver.patch);
     int rc = SDL_Init(SDL_INIT_EVERYTHING);
-    if (rc < 0)
-    {
+    if (rc < 0) {
         const char* err_str = SDL_GetError();
         printf("%s:%u: sdl2:\"%s\"\n", __FILE__, __LINE__,  err_str);
         exit(rc);
@@ -68,26 +64,29 @@ int main(int argc, char* argv[])
     SDL_Renderer *render = SDL_CreateRenderer(sdlw, -1, render_flags);
 
     rc = IMG_Init(IMG_INIT_EVERYTHING);
-    if (rc != IMG_INIT_PNG)
-    {
+    if (!(rc & IMG_INIT_PNG)) {
         const char* err_str = SDL_GetError();
         printf("%s:%u: sdl2:\"%s\"\n", __FILE__, __LINE__,  err_str);
         exit(1);
     }
     cpr::Response r = cpr::Get(cpr::Url{"https://a.tile.openstreetmap.org/0/0/0.png"});
-    SDL_RWops* rwop = SDL_RWFromMem(r.text.data(), r.text.size());
+    SDL_RWops* rwop = SDL_RWFromConstMem(r.text.data(), r.text.size());
     SDL_Surface *surface = IMG_Load_RW(rwop, 0);
-    SDL_Texture *texture = NULL;
-    if (surface)
-    {
-        texture = SDL_CreateTextureFromSurface(render, surface);
-        SDL_FreeSurface(surface);
+    if (!surface) {
+        const char* err_str = SDL_GetError();
+        printf("%s:%u: sdl2:\"%s\"\n", __FILE__, __LINE__,  err_str);
         exit(1);
     }
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(render, surface);
+    if (!texture) {
+        const char* err_str = SDL_GetError();
+        printf("%s:%u: sdl2:\"%s\"\n", __FILE__, __LINE__,  err_str);
+        exit(1);
+    }
+    SDL_FreeSurface(surface);
 
     vec2 tile_size = get_tile_size();
-    SDL_Rect dst_rect
-    {
+    SDL_Rect dst_rect {
         static_cast<int>((canvas_size.x - tile_size.x) / 2.0f),
         static_cast<int>((canvas_size.y - tile_size.y) / 2.0f),
         static_cast<int>(tile_size.x),
@@ -96,19 +95,15 @@ int main(int argc, char* argv[])
 
     SDL_AddEventWatch(event_handler, nullptr);
     SDL_Event sdle = {0};
-    while (sdle.type != SDL_QUIT)
-    {
+    while (sdle.type != SDL_QUIT) {
         int rc = SDL_WaitEvent(&sdle);
-        if (rc == 0)
-        {
+        if (rc == 0) {
             const char* err_str = SDL_GetError();
             printf("%s:%u: sdl2:\"%s\"\n", __FILE__, __LINE__,  err_str);
             break;
         }
-        else if (sdle.type == SDL_WINDOWEVENT)
-        {
-            if (sdle.window.event == SDL_WINDOWEVENT_EXPOSED)
-            {
+        else if (sdle.type == SDL_WINDOWEVENT) {
+            if (sdle.window.event == SDL_WINDOWEVENT_EXPOSED) {
                 SDL_RenderClear(render);
                 SDL_RenderCopy(render, texture, NULL, &dst_rect);
                 SDL_RenderPresent(render);
