@@ -110,30 +110,30 @@ vec2 lonlat_to_world(const vec2& ll) {
  }
  
  
- float rad_to_deg(float val) {
-     return val * (180.0f / M_PI);
- }
+float rad_to_deg(float val) {
+    return val * (180.0f / M_PI);
+}
  
  
- vec2 world_to_lonlat(float wx, float wy) {
-     float lon = wx * 180.0f;
-     float lat = rad_to_deg(atan(sinh(wy * M_PI)));
-     return {lon, lat};
- }
- 
- 
- vec2 world_to_tile(float wx, float wy, float z) {
-     float n = pow(2.0, floorf(z));
-     float tx = floorf((( wx + 1.0f) / 2.0f) * n);
-     float ty = floorf(((-wy + 1.0f) / 2.0f) * n);
-     return {tx, ty};
- }
- 
- 
- vec2 lonlat_to_tile(float lon, float lat, float z) {
-     vec2 w = lonlat_to_world(vec2(lon, lat));
-     return world_to_tile(w.x, w.y, z);
- }
+vec2 world_to_lonlat(float wx, float wy) {
+    float lon = wx * 180.0f;
+    float lat = rad_to_deg(atan(sinh(wy * M_PI)));
+    return {lon, lat};
+}
+
+
+vec2 world_to_tile(float wx, float wy, float z) {
+    float n = pow(2.0, floorf(z));
+    float tx = floorf((( wx + 1.0f) / 2.0f) * n);
+    float ty = floorf(((-wy + 1.0f) / 2.0f) * n);
+    return {tx, ty};
+}
+
+
+vec2 lonlat_to_tile(float lon, float lat, float z) {
+    vec2 w = lonlat_to_world(vec2(lon, lat));
+    return world_to_tile(w.x, w.y, z);
+}
 
 
 vec2 tile_to_lonlat(float tx, float ty, float tz) {   

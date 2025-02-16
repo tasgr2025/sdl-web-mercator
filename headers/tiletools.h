@@ -31,7 +31,7 @@ vec2 get_tile_size();
 /// @brief Преобразует долготу и широту в мировые координаты .
 /// @param ll Долгота и широта.
 /// @return Мировые координаты.
-vec2 lonlat_to_world(vec2 &ll);
+vec2 lonlat_to_world(const vec2 &ll);
 
 
 /// @brief Преобразует градусы в радианы.
@@ -70,6 +70,21 @@ vec2 tile_to_lonlat (float tx, float ty, float tz);
 /// @param tz Уровень детализации плитки.
 /// @return Мировые координаты.
 vec2 tile_to_world (float tx, float ty, float tz);
+
+
+/// @brief 
+/// @param wx 
+/// @param wy 
+/// @return 
+vec2 world_to_lonlat(float wx, float wy);
+
+
+/// @brief 
+/// @param wx 
+/// @param wy 
+/// @param z 
+/// @return 
+vec2 world_to_tile(float wx, float wy, float z);
 
 
 /// @brief Преобразует мировые координат в координаты экрана.
