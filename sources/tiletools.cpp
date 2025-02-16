@@ -1,11 +1,36 @@
 #include "tiletools.h"
 
-
-static const float tile_width =  256.0f;
-static const float tile_height = 256.0f;
-static const float R = 6372795.0f;
-
 using namespace glm;
+
+
+static float tile_width =  256.0f;
+static float tile_height = 256.0f;
+static const float R = 6372795.0f;
+static float min_zoom = 2.0f;
+static float max_zoom = 19.0;
+
+
+void set_zoom(vec3& xyz, const vec2& canvas_size, float zoom, const ivec2& pivot) {
+    vec2 p1 = screen_to_world(xyz, canvas_size, pivot);
+    xyz.z = clamp(zoom, max_zoom, min_zoom);
+    vec2 p2 = screen_to_world(xyz, canvas_size, pivot);
+    xyz.x -= p2.x - p1.x;
+    xyz.y -= p2.y - p1.y;
+}
+
+
+void multiply_zoom(vec3& xyz, const vec2& canvas_size, float multiplier, const ivec2& pivot) {
+    vec2 p1 = screen_to_world(xyz, canvas_size, pivot);
+    xyz.z = clamp(xyz.z * multiplier, min_zoom, max_zoom);
+    vec2 p2 = screen_to_world(xyz, canvas_size, pivot);
+    xyz.x -= p2.x - p1.x;
+    xyz.y -= p2.y - p1.y;
+}
+
+
+vec2 get_zoom_bounds() {
+    return {min_zoom, max_zoom};
+}
 
 
 vec2 get_tile_size() {
@@ -13,8 +38,9 @@ vec2 get_tile_size() {
 }
 
 
-int sign(float val) {
-    return (0.0f < val) - (val < 0.0f);
+void set_tile_size (const vec2& ts) {
+    tile_width = ts.x;
+    tile_height = ts.y;
 }
 
 
@@ -25,13 +51,12 @@ float deg_to_rad(float v) {
 
 vec2 lonlat_to_world(const vec2 &ll) {
    float x = ll.x / 180.0f;
-   float latsin = sinf(deg_to_rad(ll.y) * sign(ll.y));
-   float y = (sign(ll.y) * (logf((1.0f + latsin) / (1.0f - latsin)) / 2.0f)) / M_PI;
+   float latsin = sinf(deg_to_rad(ll.y) * copysignf(1.0f, ll.y));
+   float y = (copysignf(1.0f, ll.y) * (logf((1.0f + latsin) / (1.0f - latsin)) / 2.0f)) / M_PI;
    return {x, y};
 }
 
 
-// convert lon/lat to screen coords
 vec2 lonlat_to_screen(const vec3 &xyz, const vec2 &canvas_size, const vec2 &ll) {
     vec2 wp = lonlat_to_world(ll);
     return world_to_screen(xyz, wp, canvas_size);
@@ -43,7 +68,6 @@ float rad_to_deg(float val) {
 }
 
 
-// convert world coords to lon/lat
 vec2 world_to_lonlat(float wx, float wy) {
     float lon = wx * 180.0f;
     float lat = rad_to_deg(atan(sinh(wy * M_PI)));
@@ -51,7 +75,6 @@ vec2 world_to_lonlat(float wx, float wy) {
 }
 
 
-// convert world coords to tile coords
 vec2 world_to_tile(float wx, float wy, float z) {
     float n = pow(2.0, floorf(z));
     float tx = floorf((( wx + 1.0f) / 2.0f) * n);
@@ -60,7 +83,6 @@ vec2 world_to_tile(float wx, float wy, float z) {
 }
 
 
-// convert lon/lat to tile coords
 vec2 lonlat_to_tile(float lon, float lat, float z) {
     vec2 w = lonlat_to_world(vec2(lon, lat));
     return world_to_tile(w.x, w.y, z);
@@ -82,12 +104,12 @@ vec2 tile_to_lonlat(float tx, float ty, float tz) {
 
 
 // convert screen coords to world coords
-vec2 screen_to_world(const vec3 &xyz, const vec2 &canvas_size, const vec2 &screen_coords) {   
+vec2 screen_to_world(const vec3 &xyz, const vec2 &canvas_size, const ivec2 &screen_coords) {   
     float n = powf(2.0f, xyz.z);
     float span_w = n * tile_width;
     float span_h = n * tile_height;
-    float px = screen_coords.x - canvas_size.x / 2.0f + span_w / 2.0f;
-    float py = screen_coords.y - canvas_size.y / 2.0f + span_h / 2.0f;
+    float px = static_cast<float>(screen_coords.x) - canvas_size.x / 2.0f + span_w / 2.0f;
+    float py = static_cast<float>(screen_coords.y) - canvas_size.y / 2.0f + span_h / 2.0f;
     float xr = px / span_w;
     float yr = py / span_h;
     float x = (xr * 2.0f - 1.0f) + xyz.x;

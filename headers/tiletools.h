@@ -7,7 +7,20 @@
 using namespace glm;
 
 
-int sign(float val);
+/// @brief 
+/// @param xyz 
+/// @param canvas_size Размер в пикселях поверхности для рисования
+/// @param zoom 
+/// @param pivot 
+void set_zoom(vec3& xyz, const vec2& canvas_size, float zoom, const ivec2& pivot);
+
+
+/// @brief Умножает масштаб вокруг заданной точки
+/// @param xyz Текущая позиция
+/// @param canvas_size Размер в пикселях поверхности для рисования
+/// @param multiplier Множитель масштаба
+/// @param pivot Заданная точка
+void multiply_zoom(vec3& xyz, const vec2& canvas_size, float multiplier, const ivec2& pivot);
 
 
 /// @brief Возвращает размер плитки
@@ -88,8 +101,7 @@ vec2 screen_to_lonlat (const vec3 &xyz, const vec2 &canvas_size, const vec2 &scr
 /// @param canvas_size Размер в пикселях поверхности для рисования.
 /// @param screen_coords Координаты экрана.
 /// @return Мировые координаты.
-vec2 screen_to_world  (const vec3 &xyz, const vec2 &canvas_size, const vec2 &screen_coords);
-
+vec2 screen_to_world  (const vec3 &xyz, const vec2 &canvas_size, const ivec2 &screen_coords);
 
 
 /// @brief 
@@ -100,7 +112,6 @@ vec2 screen_to_world  (const vec3 &xyz, const vec2 &canvas_size, const vec2 &scr
 vec2 screen_to_tile   (const vec3 &xyz, const vec2 &canvas_size, const vec2 &screen_coords);
 vec2 world_to_screen  (const vec3 &xyz, const vec2 &canvas_size, const vec2 &world_coords);
 vec2 tile_to_screen   (const vec3 &xyz, const vec2 &canvas_size, const vec3 &tile_coords);
-
 
 
 /// @brief Вычисляет расстояние между двумя точками 1 и 2 на поверхности Земли
