@@ -38,7 +38,7 @@ int event_handler(void *userdata, SDL_Event *event) {
     dragging &= rollover;
     
     if (!rollover) {
-        return;
+        return 0;
     }
 
     if (event->type == SDL_MOUSEBUTTONDOWN) {
