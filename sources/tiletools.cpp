@@ -6,7 +6,7 @@ using namespace glm;
 static float tile_width =  256.0f;
 static float tile_height = 256.0f;
 static const float R = 6372795.0f;
-static float min_zoom = 2.0f;
+static float min_zoom = 1.0f;
 static float max_zoom = 19.0;
 
 
@@ -35,16 +35,15 @@ vec2 screen_to_lonlat(const vec3& xyz, const vec2& canvas_size, const vec2& scre
 }
 
 
-// convert screen coords to world coords
-vec2 screen_to_world(const vec3& xyz, const vec2& canvas_size, const ivec2 &screen_coords) {   
+vec2 screen_to_world(const vec3& xyz, const vec2& canvas_size, const ivec2 &screen_coords) {
     float n = powf(2.0f, xyz.z);
     float span_w = n * tile_width;
     float span_h = n * tile_height;
-    float px = static_cast<float>(screen_coords.x) - canvas_size.x / 2.0f + span_w / 2.0f;
-    float py = static_cast<float>(screen_coords.y) - canvas_size.y / 2.0f + span_h / 2.0f;
+    float px = float(screen_coords.x) - canvas_size.x / 2.0f + span_w / 2.0f;
+    float py = float(screen_coords.y) - canvas_size.y / 2.0f + span_h / 2.0f;
     float xr = px / span_w;
     float yr = py / span_h;
-    float x = (xr * 2.0f - 1.0f) + xyz.x;
+    float x =  ( xr * 2.0f  - 1.0f) + xyz.x;
     float y = ((-yr * 2.0f) + 1.0f) + xyz.y;
     return {x, y};
 }
@@ -144,16 +143,16 @@ vec2 tile_to_lonlat(float tx, float ty, float tz) {
 
 vec2 tile_to_world(float tx, float ty, float tz) {
     float n = powf(2.0f, floorf(tz));
-    float x = (tx / n) * 2.0f - 1.0f;
+    float x =   (tx / n) * 2.0f - 1.0f;
     float y = -((ty / n) * 2.0f - 1.0f);
     return {x, y};
 }
 
 
-uint32 tile_to_idx(float tx, float ty, float tz) {
+uint32 tile_to_index(float tx, float ty, float tz) {
     float i = (powf(4.0f, tz) - 1.0f) / 3.0f;
     float n = powf(2.0f, tz);
-    return static_cast<uint32>(i + (ty * n + tx));
+    return uint32(i + (ty * n + tx));
 }
 
 

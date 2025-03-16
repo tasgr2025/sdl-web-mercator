@@ -45,7 +45,7 @@ float deg_to_rad(float v);
 /// @param ty Индекс плитки по оси Y.
 /// @param tz Уровень детализации плитки.
 /// @return Индекс одномерного массива.
-uint32 tile_to_idx(float tx, float ty, float tz);
+uint32 tile_to_index(float tx, float ty, float tz);
 
 
 /// @brief Преобразует долготу и широту в индекс плитки .
