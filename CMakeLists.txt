@@ -4,6 +4,10 @@ project(sdl-web-mercator)
 set(CMAKE_CXX_STANDARD 20)
 set(BUILD_SHARED_LIBS FALSE)
 set(BUILD_STATIC_LIBS TRUE)
+set(CMAKE_WARN_DEPRECATED FALSE) # CMake Deprecation Warning at ...
+set(CURL_USE_LIBPSL FALSE)       # CMake Warning at build/_deps/curl-src/CMakeLists.txt:1098 (message):libpsl is enabled, but not found.
+set(BUILD_LIBCURL_DOCS FALSE)    # CMake Warning at build/_deps/curl-src/CMakeLists.txt:426 (message):Perl not found.  Will not build manuals.
+set(ENABLE_CURL_MANUAL FALSE)    # CMake Warning at build/_deps/curl-src/CMakeLists.txt:426 (message):Perl not found.  Will not build manuals.
 
 include(FetchContent)
 
