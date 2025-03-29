@@ -19,4 +19,5 @@ public:
     void set_tick(Uint32 tick) { this->tick = tick; }
     Uint32 get_tick() { return tick; }
     SDL_Point get_size();
+    Uint32 get_index();
 };
