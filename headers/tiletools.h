@@ -23,6 +23,14 @@ void set_zoom(vec3& xyz, const vec2& canvas_size, float zoom, const ivec2& pivot
 void multiply_zoom(vec3& xyz, const vec2& canvas_size, float multiplier, const ivec2& pivot);
 
 
+/// @brief Увеличивает масштаб вокруг заданной точки
+/// @param xyz Текущая позиция
+/// @param canvas_size Размер в пикселях поверхности для рисования
+/// @param multiplier Шаг изменения масштаба
+/// @param pivot Заданная точка
+void step_zoom(vec3& xyz, const vec2& canvas_size, float step, const ivec2& pivot);
+
+
 /// @brief Возвращает размер плитки
 /// @return Размер плитки в пикселях
 vec2 get_tile_size();
