@@ -18,7 +18,7 @@ vec3 xyz { 0.0f, 0.0f, 0.0f };
 vec2 tile_size { get_tile_size()};
 
 /// @brief Шаблон адреса для получения плиток
-std::string base_url{"https://a.tile.openstreetmap.org/{0}/{1}/{2}.png"};
+std::string base_url{"https://a.tile.openstreetmap.org/{2}/{0}/{1}.png"};
 
 /// @brief Шаг масштабирования
 float zoom_step = 0.025;
