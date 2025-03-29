@@ -12,7 +12,7 @@ vec2 canvas_size { 512.0f, 512.0f };
 vec2 window_size { 512.0f, 512.0f };
 
 /// @brief Текущая позиция WebMercator
-vec3 xyz { 0.0f, 0.0f, 1.0f };
+vec3 xyz { 0.0f, 0.0f, 0.0f };
 
 /// @brief Размер плитки
 vec2 tile_size { get_tile_size()};
@@ -221,7 +221,7 @@ int event_handler(void *userdata, SDL_Event *event) {
         }
         break;
     case SDL_MOUSEWHEEL:
-        multiply_zoom(xyz, canvas_size, 1.0f + zoom_step * float(event->wheel.y), mouse_pos);
+        step_zoom(xyz, canvas_size, zoom_step * float(event->wheel.y), mouse_pos);
         queue_redraw(event);
         break;
     }

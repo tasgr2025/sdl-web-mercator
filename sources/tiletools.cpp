@@ -6,7 +6,7 @@ using namespace glm;
 static float tile_width =  256.0f;
 static float tile_height = 256.0f;
 static const float R = 6372795.0f;
-static float min_zoom = 1.0f;
+static float min_zoom = 0.0f;
 static float max_zoom = 19.0;
 
 
@@ -28,7 +28,15 @@ void multiply_zoom(vec3& xyz, const vec2& canvas_size, float multiplier, const i
 }
 
 
-// convert screen coords to lon/lat
+void step_zoom(vec3& xyz, const vec2& canvas_size, float step, const ivec2& pivot) {
+    vec2 p1 = screen_to_world(xyz, canvas_size, pivot);
+    xyz.z = clamp(xyz.z + step, min_zoom, max_zoom);
+    vec2 p2 = screen_to_world(xyz, canvas_size, pivot);
+    xyz.x -= p2.x - p1.x;
+    xyz.y -= p2.y - p1.y;
+}
+
+
 vec2 screen_to_lonlat(const vec3& xyz, const vec2& canvas_size, const vec2& screen_coords) {
     vec2 w = screen_to_world(xyz, canvas_size, screen_coords);
     return world_to_lonlat(w.x, w.y);
