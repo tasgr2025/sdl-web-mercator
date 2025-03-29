@@ -24,7 +24,7 @@ std::string base_url{"https://a.tile.openstreetmap.org/{2}/{0}/{1}.png"};
 float zoom_step = 0.025;
 
 /// @brief Минимальный уровень детализации
-int min_zoom = 1.0f;
+int min_zoom = 0.0f;
 
 /// @brief Максимальный уровень детализации
 int max_zoom = 18.0f;
@@ -66,11 +66,13 @@ void draw_map(SDL_Renderer* render) {
     vec2 t1 = screen_to_tile(xyz, canvas_size, vec2{0.0f, 0.0f});
     vec2 t2 = screen_to_tile(xyz, canvas_size, canvas_size) + vec2{1.0f, 1.0f};
     printf(">>> %0.1f..%0.1f (%0.3f) xyz.x:%0.3f xyz.z:%0.3f\n", t1.x, t2.x, t1.x - t2.x, xyz.x, xyz.z);
-    for (float x = t1.x; x < t2.x; x += 1.0f)
-    for (float y = t1.y; y < t2.y; y += 1.0f) {
-            draw_tile(render, fmodf(x, t2.x - t1.x), y, 0.0f);
+    vec2 dv = t2 - t1;
+    for (float x = t1.x; x < t2.x; x += 1.0f) {
+        for (float y = t1.y; y < t2.y; y += 1.0f) {
+            draw_tile(render, fmodf(x, dv.x), fmodf(y, dv.y), xyz.z);
         }
-    printf("<<<<\n");
+    }
+    printf("<<<\n");
     return;
 }
 
@@ -86,16 +88,16 @@ SDLTile* get_next_in_queue() {
 }
 
 
-void draw_tile(SDL_Renderer* render, float tx, float ty, float tz) {
-    tz = floorf(tz);
-    vec2 p1 = tile_to_screen(xyz, canvas_size, vec3{tx,        ty,        tz});
-    vec2 p2 = tile_to_screen(xyz, canvas_size, vec3{tx + 1.0f, ty + 1.0f, tz});
+void draw_tile(SDL_Renderer* render, float tx, float ty, float z) {
+    float tz = floorf(z);
+    vec2 p1 = tile_to_screen(xyz, canvas_size, vec3{tx,        ty,        z});
+    vec2 p2 = tile_to_screen(xyz, canvas_size, vec3{tx + 1.0f, ty + 1.0f, z});
     SDLTile* tile = get_tile(tx, ty, tz);
-    printf("tile:%p\n", tile);
     if (tile) {
         if (tile->get_texture()) {
             vec2 p3 = p2 - p1;
             SDL_Rect rect_dst(p1.x, p1.y, p3.x, p3.y);
+            printf("tile: %0.3f %0.3f\n", p1.x, p1.y);
             SDL_RenderCopy(render, tile->get_texture(), NULL, &rect_dst);
         }
         else {
@@ -137,11 +139,11 @@ bool draw_subtile(SDL_Renderer* render, int tx, int ty, int tz, int origx, int o
     float yheight = yrat2 - yrat1;
 
     vec2 tile_size = get_tile_size();
-    SDL_Rect rect_dst ( xrat1 * tile_size.x, yrat1 * tile_size.y, xwidth * tile_size.x, yheight * tile_size.y );
+    SDL_Rect rect_src ( xrat1 * tile_size.x, yrat1 * tile_size.y, xwidth * tile_size.x, yheight * tile_size.y );
     SDL_Texture* texture = subtile->get_texture();
     if (texture) {
         vec2 dp = p2 - p1;
-        SDL_Rect rect_src (p1.x, p1.y, dp.x, dp.y);
+        SDL_Rect rect_dst (p1.x, p1.y, dp.x, dp.y);
         SDL_RenderCopy(render, texture, &rect_src, &rect_dst);
         return true;
     }
@@ -186,7 +188,7 @@ SDLTile* get_tile(int x, int y, int z) {
         return item->second;
     }
 
-    SDLTile* tile = new SDLTile(idx, x, y, z);
+    SDLTile* tile = new SDLTile(x, y, z);
     tile->set_tick(tick);
     queue[idx] = tile;
     return tile;
@@ -214,9 +216,8 @@ int event_handler(void *userdata, SDL_Event *event) {
     case SDL_MOUSEMOTION:
         if (dragging) {
             vec2 diff = drag_pos - screen_to_world(xyz, canvas_size, mouse_pos);
-            xyz.x += diff.x;
-            xyz.y += diff.y;
-            xyz.x = fmodf(xyz.x, canvas_size.x / tile_size.x);
+            xyz.x = fmodf(xyz.x + diff.x, canvas_size.x / tile_size.x);
+            xyz.y = fmodf(xyz.y + diff.y, canvas_size.y / tile_size.y);
             queue_redraw(event);
         }
         break;
@@ -260,7 +261,7 @@ int main(int argc, char* argv[]) { CPPTRACE_TRY
     SDL_Window* sdlw = SDL_CreateWindow(
         "Обзор карты WEB Mercator",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        window_size.x, window_size.y, SDL_WINDOW_OPENGL);
+        canvas_size.x, canvas_size.y, SDL_WINDOW_OPENGL);
     SDL_Renderer *render = SDL_CreateRenderer(sdlw, -1, render_flags);
     if (!render) {
         exit_on_sdl_error();
@@ -270,15 +271,33 @@ int main(int argc, char* argv[]) { CPPTRACE_TRY
         warn_on_sdl_error();
     }
 
-    SDLTile tile;
-    cpr::Response r = cpr::Get(cpr::Url{tile.get_url(base_url)});
-    if (r.error.code != cpr::ErrorCode::OK) {
-        printf("%s:\"%s\"\n", r.error.message.c_str(), r.url.c_str());
-        exit_on_sdl_error();
+    int x=0, y=0;
+    SDL_GetRendererOutputSize(render, &x, &y);
+    printf("размер вывода визуализатора в пикселях: %dx%d\n", x, y);
+
+    std::vector<SDLTile> test_tiles;
+    test_tiles.emplace_back(SDLTile(0, 0, 0));
+    test_tiles.emplace_back(SDLTile(0, 0, 1));
+    test_tiles.emplace_back(SDLTile(0, 1, 1));
+    test_tiles.emplace_back(SDLTile(1, 0, 1));
+    test_tiles.emplace_back(SDLTile(1, 1, 1));
+
+    for (size_t i = 0; i < test_tiles.size(); i ++) {
+        auto tile = &test_tiles[i];
+        std::string url = tile->get_url(base_url);
+        cpr::Response r = cpr::Get(cpr::Url{url});
+        if (r.error.code != cpr::ErrorCode::OK) {
+            printf("%s:\"%s\"\n", r.error.message.c_str(), r.url.c_str());
+            continue;
+        }
+        if (!tile->set_texture_from_data(render, r.text.data(), r.text.size())) {
+            printf("не загружено: %s\n", tile->get_url(base_url).c_str());
+            continue;
+        }
+        int idx = tile->get_index();
+        cache[idx] = tile;
     }
-    tile.set_texture_from_data(render, r.text.data(), r.text.size());
-    int idx = tile_to_index(0, 0, 0);
-    cache[idx] = &tile;
+    
     SDL_AddEventWatch(event_handler, nullptr);
     SDL_Event sdle = {0};
     while (sdle.type != SDL_QUIT) {
