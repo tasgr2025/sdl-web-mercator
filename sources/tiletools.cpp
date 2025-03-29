@@ -78,7 +78,7 @@ vec2 world_to_screen(const vec3& xyz, const vec2& canvas_size, const vec2& world
     float yr = (-(world_coords.y - xyz.y) + 1.0f) / 2.0f;
     float x = w * xr - w / 2.0f + canvas_size.x / 2.0f;
     float y = h * yr - h / 2.0f + canvas_size.y / 2.0f;
-    return {x, y};
+    return {ceilf(x), ceilf(y)};
 }
 
 
