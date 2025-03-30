@@ -276,11 +276,10 @@ int main(int argc, char* argv[]) { CPPTRACE_TRY
     printf("размер вывода визуализатора в пикселях: %dx%d\n", x, y);
 
     std::vector<SDLTile> test_tiles;
-    test_tiles.emplace_back(SDLTile(0, 0, 0));
-    test_tiles.emplace_back(SDLTile(0, 0, 1));
-    test_tiles.emplace_back(SDLTile(0, 1, 1));
-    test_tiles.emplace_back(SDLTile(1, 0, 1));
-    test_tiles.emplace_back(SDLTile(1, 1, 1));
+    for (int z = 0; z < 2; z ++)
+    for (int y = 0; y < sqrtf(powf(2.0f, float(z))); y ++)
+    for (int x = 0; x < sqrtf(powf(2.0f, float(z))); x ++)
+    test_tiles.emplace_back(SDLTile(x, y, z));
 
     for (size_t i = 0; i < test_tiles.size(); i ++) {
         auto tile = &test_tiles[i];
