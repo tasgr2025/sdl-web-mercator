@@ -296,7 +296,7 @@ int main(int argc, char* argv[]) { CPPTRACE_TRY
         int idx = tile->get_index();
         cache[idx] = tile;
     }
-    
+    printf("загружено %zd плиток\n", cache.size());
     SDL_AddEventWatch(event_handler, nullptr);
     SDL_Event sdle = {0};
     while (sdle.type != SDL_QUIT) {

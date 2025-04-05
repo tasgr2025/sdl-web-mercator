@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <cmath>
 #include <string>
 #include <format>
 #include <SDL.h>
