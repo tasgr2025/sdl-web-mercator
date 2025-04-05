@@ -97,7 +97,7 @@ void draw_tile(SDL_Renderer* render, float tx, float ty, float z) {
         if (tile->get_texture()) {
             vec2 p3 = p2 - p1;
             SDL_Rect rect_dst(p1.x, p1.y, p3.x, p3.y);
-            printf("tile: %0.3f %0.3f\n", p1.x, p1.y);
+            printf("tile: %d %d\n", rect_dst.x, rect_dst.y);
             SDL_RenderCopy(render, tile->get_texture(), NULL, &rect_dst);
         }
         else {
@@ -120,6 +120,7 @@ void draw_tile(SDL_Renderer* render, float tx, float ty, float z) {
 bool draw_subtile(SDL_Renderer* render, int tx, int ty, int tz, int origx, int origy, float origz) {
     SDLTile* subtile = get_tile(tx, ty, tz);
     if (!subtile) {
+        printf("плитка %d:%d:%d не найдена\n", tx, ty, tz);
         return false;
     }
 
@@ -144,6 +145,7 @@ bool draw_subtile(SDL_Renderer* render, int tx, int ty, int tz, int origx, int o
     if (texture) {
         vec2 dp = p2 - p1;
         SDL_Rect rect_dst (p1.x, p1.y, dp.x, dp.y);
+        printf("sub_tile: %d %d\n", rect_dst.x, rect_dst.y);
         SDL_RenderCopy(render, texture, &rect_src, &rect_dst);
         return true;
     }
@@ -152,13 +154,13 @@ bool draw_subtile(SDL_Renderer* render, int tx, int ty, int tz, int origx, int o
 
 
 SDLTile* get_tile(int x, int y, int z) {
-    float n = powf(2.0f, z);
+    int n = ceilf(powf(2.0f, z));
     if (x >= 0) {
-        x %= int(n);
+        x %= n;
     }
     else {
         x = -x - 1;
-        x = int(n - 1) - (x % int(n));
+        x = (n - 1) - (x % n);
     }
 
     // за пределами
@@ -276,7 +278,7 @@ int main(int argc, char* argv[]) { CPPTRACE_TRY
     printf("размер вывода визуализатора в пикселях: %dx%d\n", x, y);
 
     std::vector<SDLTile> test_tiles;
-    for (int z = 0; z < 2; z ++)
+    for (int z = 0; z < 1; z ++)
     for (int y = 0; y < sqrtf(powf(2.0f, float(z))); y ++)
     for (int x = 0; x < sqrtf(powf(2.0f, float(z))); x ++)
     test_tiles.emplace_back(SDLTile(x, y, z));
