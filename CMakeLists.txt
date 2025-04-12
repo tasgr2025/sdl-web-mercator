@@ -59,7 +59,8 @@ file(GLOB SOURCES "sources/*.cpp")
 add_executable(${PROJECT_NAME} ${SOURCES})
 target_compile_definitions(${PROJECT_NAME} PRIVATE SDL_MAIN_HANDLED=1 _USE_MATH_DEFINES=1)
 
-target_link_libraries(${PROJECT_NAME}
+target_link_libraries(
+    ${PROJECT_NAME}
     SDL2::SDL2main
     SDL2::SDL2-static
     SDL2_image

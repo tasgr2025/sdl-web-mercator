@@ -38,14 +38,11 @@ vec2 drag_pos { 0.0f, 0.0f };
 /// @brief <...>
 bool rollover { false };
 
-/// @brief 
-std::unordered_map<int, SDLTile*> requests;
-
 /// @brief
 std::unordered_map<int, SDLTile*> cache;
 
 /// @brief
-std::unordered_map<int, SDLTile*> queue;
+std::vector<SDLTile*> queue;
 
 /// @brief 
 Uint32 last_cache_check = 0;
@@ -79,7 +76,7 @@ void draw_map(SDL_Renderer* render) {
 
 SDLTile* get_next_in_queue() {
     SDLTile* tile = nullptr;
-    for (const auto &[idx, t] : queue) {
+    for (auto& t : queue) {
         if ((!tile) || (t->get_tick() > tile->get_tick())) {
             tile = t;
         }
@@ -172,20 +169,8 @@ SDLTile* get_tile(int x, int y, int z) {
     int idx = tile_to_index(x, y, z);
     Uint32 tick = SDL_GetTicks();
 
-    auto item = requests.find(idx);
-    if (item != requests.end()) {
-        item->second->set_tick(tick);
-        return item->second;
-    }
-
-    item = cache.find(idx);
+    auto item = cache.find(idx);
     if (item != cache.end()) {
-        item->second->set_tick(tick);
-        return item->second;
-    }
-
-    item = queue.find(idx);
-    if (item != queue.end()) {
         item->second->set_tick(tick);
         return item->second;
     }
