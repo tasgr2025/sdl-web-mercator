@@ -32,7 +32,7 @@ bool SDLTile::set_texture_from_data(SDL_Renderer *render, const char *data, cons
 
 
 SDL_Point SDLTile::get_size() {
-    int w{0}, h{0};
-    SDL_QueryTexture(texture, NULL, NULL, &w, &h);
-    return SDL_Point{w, h};
+    SDL_Point p;
+    SDL_QueryTexture(texture, NULL, NULL, &p.x, &p.y);
+    return p;
 }

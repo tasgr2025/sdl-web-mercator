@@ -172,7 +172,6 @@ SDLTile* get_tile(int x, int y, int z) {
     int idx = tile_to_index(x, y, z);
     Uint32 tick = SDL_GetTicks();
 
-    // retrieve from current requests
     auto item = requests.find(idx);
     if (item != requests.end()) {
         item->second->set_tick(tick);

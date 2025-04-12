@@ -6,8 +6,8 @@ using namespace glm;
 static float tile_width =  256.0f;
 static float tile_height = 256.0f;
 static const float R = 6372795.0f;
-static float min_zoom = 0.0f;
-static float max_zoom = 19.0;
+static float min_zoom = 0.0f;  // TODO: убрать этот параметр
+static float max_zoom = 19.0;  // TODO: убрать этот параметр
 
 
 void set_zoom(vec3& xyz, const vec2& canvas_size, float zoom, const ivec2& pivot) {
@@ -130,9 +130,9 @@ vec2 world_to_lonlat(float wx, float wy) {
 
 vec2 world_to_tile(float wx, float wy, float z) {
     float n = pow(2.0, floorf(z));
-    float tx = floorf((( wx + 1.0f) / 2.0f) * n);
-    float ty = floorf(((-wy + 1.0f) / 2.0f) * n);
-    return {tx, ty};
+    float tx = (( wx + 1.0f) / 2.0f) * n;
+    float ty = ((-wy + 1.0f) / 2.0f) * n;
+    return {floorf(tx), floorf(ty)};
 }
 
 
