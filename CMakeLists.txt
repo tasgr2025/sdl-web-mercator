@@ -47,14 +47,6 @@ FetchContent_Declare(
     GIT_TAG        "v0.7.5"
     GIT_PROGRESS TRUE)
 
-# Отключено, т.к. при сборке выдаёт ошибку:
-#    отсутствует спецификатор типа - предполагается int. Примечание. C++ не поддерживает int по умолчанию [E:\My Documents\Visual Studio 2005\Projects\sdl-web-mercator\build\sdl-web-mercator.vcxproj]
-#FetchContent_Declare(
-#    frozen
-#    GIT_REPOSITORY https://github.com/serge-sans-paille/frozen.git
-#    GIT_TAG "1.2.0"
-#    GIT_PROGRESS TRUE)
-
 FetchContent_MakeAvailable(cpr SDL2 SDL2_IMAGE glm CLI11 cpptrace)
 
 include_directories("${sdl2_SOURCE_DIR}/include")
