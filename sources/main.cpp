@@ -27,7 +27,7 @@ float zoom_step = 0.025;
 int min_zoom = 0.0f;
 
 /// @brief Максимальный уровень детализации
-int max_zoom = 18.0f;
+int max_zoom = 3.0f;
 
 /// @brief Флаг. Перетаскивания мышкой активно
 bool dragging { false };
@@ -63,13 +63,13 @@ void clean_cache() {
 
 
 void draw_map(SDL_Renderer* render) {
-    vec2 t1 = screen_to_tile(xyz, canvas_size, vec2{0.0f, 0.0f});
-    vec2 t2 = screen_to_tile(xyz, canvas_size, canvas_size) + vec2{1.0f, 1.0f};
+    float z = min(float(max_zoom), xyz.z);
+    vec2 t1 = screen_to_tile(z, xyz, canvas_size, vec2{0.0f, 0.0f});
+    vec2 t2 = screen_to_tile(z, xyz, canvas_size, canvas_size) + vec2{1.0f, 1.0f};
     printf(">>> %0.1f..%0.1f (%0.3f) xyz.x:%0.3f xyz.z:%0.3f\n", t1.x, t2.x, t1.x - t2.x, xyz.x, xyz.z);
-    vec2 dv = t2 - t1;
-    for (float x = t1.x; x < t2.x; x += 1.0f) {
-        for (float y = t1.y; y < t2.y; y += 1.0f) {
-            draw_tile(render, fmodf(x, dv.x), fmodf(y, dv.y), xyz.z);
+    for (int x = int(t1.x); x < int(t2.x); x += 1) {
+        for (int y = int(t1.y); y < int(t2.y); y += 1) {
+            draw_tile(render, x, y, z);
         }
     }
     printf("<<<\n");
@@ -88,7 +88,7 @@ SDLTile* get_next_in_queue() {
 }
 
 
-void draw_tile(SDL_Renderer* render, float tx, float ty, float z) {
+void draw_tile(SDL_Renderer* render, int tx, int ty, float z) {
     float tz = floorf(z);
     vec2 p1 = tile_to_screen(xyz, canvas_size, vec3{tx,        ty,        z});
     vec2 p2 = tile_to_screen(xyz, canvas_size, vec3{tx + 1.0f, ty + 1.0f, z});
@@ -100,17 +100,17 @@ void draw_tile(SDL_Renderer* render, float tx, float ty, float z) {
             printf("tile: %d %d\n", rect_dst.x, rect_dst.y);
             SDL_RenderCopy(render, tile->get_texture(), NULL, &rect_dst);
         }
-        else {
-            float zzz = tz;
-            float txx = tx;
-            float tyy = ty;
-            while (zzz > 1.0f) {
-                zzz -= 1.0f;
-                txx = floorf(txx / 2.0f);
-                tyy = floorf(tyy / 2.0f);
-                if (draw_subtile(render, txx, tyy, zzz, tx, ty, tz)) {
-                    break;
-                }
+    }
+    else {
+        float zzz = tz;
+        float txx = tx;
+        float tyy = ty;
+        while (zzz > 1.0f) {
+            zzz -= 1.0f;
+            txx = floorf(txx / 2.0f);
+            tyy = floorf(tyy / 2.0f);
+            if (draw_subtile(render, txx, tyy, zzz, tx, ty, tz)) {
+                break;
             }
         }
     }
@@ -154,7 +154,7 @@ bool draw_subtile(SDL_Renderer* render, int tx, int ty, int tz, int origx, int o
 
 
 SDLTile* get_tile(int x, int y, int z) {
-    int n = ceilf(powf(2.0f, z));
+    int n = powf(2.0f, z);
     if (x >= 0) {
         x %= n;
     }
@@ -165,6 +165,7 @@ SDLTile* get_tile(int x, int y, int z) {
 
     // за пределами
     if ((z < 0) || (y < 0) || (y >= n)) {
+        printf("ошибка: x:%d y:%d z:%d n:%d\n", x, y, z, n);
         return nullptr;
     }
 
@@ -218,8 +219,8 @@ int event_handler(void *userdata, SDL_Event *event) {
     case SDL_MOUSEMOTION:
         if (dragging) {
             vec2 diff = drag_pos - screen_to_world(xyz, canvas_size, mouse_pos);
-            xyz.x = fmodf(xyz.x + diff.x, canvas_size.x / tile_size.x);
-            xyz.y = fmodf(xyz.y + diff.y, canvas_size.y / tile_size.y);
+            xyz.x += diff.x;
+            xyz.y += diff.y;
             queue_redraw(event);
         }
         break;
@@ -278,10 +279,14 @@ int main(int argc, char* argv[]) { CPPTRACE_TRY
     printf("размер вывода визуализатора в пикселях: %dx%d\n", x, y);
 
     std::vector<SDLTile> test_tiles;
-    for (int z = 0; z < 1; z ++)
-    for (int y = 0; y < sqrtf(powf(2.0f, float(z))); y ++)
-    for (int x = 0; x < sqrtf(powf(2.0f, float(z))); x ++)
-    test_tiles.emplace_back(SDLTile(x, y, z));
+    for (int z = 0; z <= max_zoom; z ++) {
+        int c = powf(2.0f, float(z));
+        for (int y = 0; y < c; y ++) {
+            for (int x = 0; x < c; x ++) {
+                 test_tiles.emplace_back(SDLTile(x, y, z));
+            }
+        }
+    }
 
     for (size_t i = 0; i < test_tiles.size(); i ++) {
         auto tile = &test_tiles[i];
@@ -297,6 +302,7 @@ int main(int argc, char* argv[]) { CPPTRACE_TRY
         }
         int idx = tile->get_index();
         cache[idx] = tile;
+        printf("загружена плитка: %s\n", tile->get_url(base_url).c_str());    
     }
     printf("загружено %zd плиток\n", cache.size());
     SDL_AddEventWatch(event_handler, nullptr);

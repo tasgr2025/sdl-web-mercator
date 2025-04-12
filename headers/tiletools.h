@@ -132,7 +132,7 @@ vec2 screen_to_world  (const vec3 &xyz, const vec2 &canvas_size, const ivec2 &sc
 /// @param canvas_size 
 /// @param screen_coords 
 /// @return 
-vec2 screen_to_tile   (const vec3 &xyz, const vec2 &canvas_size, const vec2 &screen_coords);
+vec2 screen_to_tile   (float z, const vec3 &xyz, const vec2 &canvas_size, const vec2 &screen_coords);
 vec2 world_to_screen  (const vec3 &xyz, const vec2 &canvas_size, const vec2 &world_coords);
 vec2 tile_to_screen   (const vec3 &xyz, const vec2 &canvas_size, const vec3 &tile_coords);
 

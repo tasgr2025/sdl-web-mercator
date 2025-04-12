@@ -57,13 +57,12 @@ vec2 screen_to_world(const vec3& xyz, const vec2& canvas_size, const ivec2 &scre
 }
 
 
-vec2 screen_to_tile(const vec3& xyz, const vec2& canvas_size, const vec2& screen_coords) {
+vec2 screen_to_tile(float z, const vec3& xyz, const vec2& canvas_size, const vec2& screen_coords) {
     vec2 world = screen_to_world(xyz, canvas_size, screen_coords);
-    return world_to_tile(world.x, world.y, xyz.z);
+    return world_to_tile(world.x, world.y, z);
 }
 
 
-// convert tile coords to screen coords
 vec2 tile_to_screen(const vec3& xyz, const vec2& canvas_size, const vec3& tile_coords) {
     vec2 w = tile_to_world(tile_coords.x, tile_coords.y, tile_coords.z);
     return world_to_screen(xyz, canvas_size, w);

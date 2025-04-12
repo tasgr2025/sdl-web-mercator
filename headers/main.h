@@ -2,6 +2,7 @@
 #define MAIN_H
 
 #include <stdio.h>
+#include <cmath>
 #include <SDL.h>
 #include <SDL_image.h>
 #include <cpr/cpr.h>
@@ -49,7 +50,7 @@ SDLTile* get_next_in_queue();
 /// @param tx 
 /// @param ty 
 /// @param tz 
-void draw_tile(SDL_Renderer* render, float tx, float ty, float tz);
+void draw_tile(SDL_Renderer* render, int tx, int ty, float tz);
 
 /// @brief
 /// @param render
