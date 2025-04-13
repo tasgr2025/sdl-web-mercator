@@ -52,7 +52,6 @@ FetchContent_MakeAvailable(cpr SDL2 SDL2_IMAGE glm CLI11 cpptrace)
 include_directories("${sdl2_SOURCE_DIR}/include")
 include_directories("${glm_SOURCE_DIR}")
 include_directories("${cli11_SOURCE_DIR}/include/CLI")
-include_directories("${frozen_SOURCE_DIR}/include")
 include_directories("headers")
 
 file(GLOB SOURCES "sources/*.cpp")
