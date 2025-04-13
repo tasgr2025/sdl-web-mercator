@@ -249,6 +249,7 @@ int main(int argc, char* argv[]) { CPPTRACE_TRY
         "Обзор карты WEB Mercator",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         canvas_size.x, canvas_size.y, SDL_WINDOW_OPENGL);
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "best");
     SDL_Renderer *render = SDL_CreateRenderer(sdlw, -1, render_flags);
     if (!render) {
         exit_on_sdl_error();
