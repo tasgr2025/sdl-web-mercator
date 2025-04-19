@@ -162,7 +162,6 @@ SDLTile* get_tile(int x, int y, int z) {
 
     // за пределами
     if ((z < 0) || (y < 0) || (y >= n)) {
-        printf("ошибка: x:%d y:%d z:%d n:%d\n", x, y, z, n);
         return nullptr;
     }
 
