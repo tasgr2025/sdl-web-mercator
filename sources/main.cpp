@@ -42,7 +42,7 @@ bool rollover { false };
 std::unordered_map<int, SDLTile*> cache;
 
 /// @brief
-std::vector<SDLTile*> queue;
+std::vector<SDLTile> queue;
 
 /// @brief 
 Uint32 last_cache_check = 0;
@@ -71,17 +71,6 @@ void draw_map(SDL_Renderer* render) {
     }
     printf("<<<\n");
     return;
-}
-
-
-SDLTile* get_next_in_queue() {
-    SDLTile* tile = nullptr;
-    for (auto& t : queue) {
-        if ((!tile) || (t->get_tick() > tile->get_tick())) {
-            tile = t;
-        }
-    }
-    return tile;
 }
 
 
@@ -174,9 +163,8 @@ SDLTile* get_tile(int x, int y, int z) {
         return item->second;
     }
 
-    SDLTile* tile = new SDLTile(x, y, z, tick);
-    queue.push_back(tile);
-    return tile;
+    queue.push_back(SDLTile(x, y, z, tick));
+    return &queue.back();
 }
 
 

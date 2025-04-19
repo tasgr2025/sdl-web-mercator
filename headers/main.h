@@ -41,10 +41,6 @@ bool draw_subtile(SDL_Renderer* render, int tx, int ty, int tz, int origx, int o
 /// @return 
 SDLTile* get_tile(int x, int y, int z);
 
-/// @brief Получить плитку из очереди с самой новой меткой времени
-/// @return 
-SDLTile* get_next_in_queue();
-
 /// @brief 
 /// @param render 
 /// @param tx 
