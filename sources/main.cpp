@@ -175,9 +175,8 @@ SDLTile* get_tile(int x, int y, int z) {
         return item->second;
     }
 
-    SDLTile* tile = new SDLTile(x, y, z);
-    tile->set_tick(tick);
-    queue[idx] = tile;
+    SDLTile* tile = new SDLTile(x, y, z, tick);
+    queue.push_back(tile);
     return tile;
 }
 
@@ -273,21 +272,20 @@ int main(int argc, char* argv[]) { CPPTRACE_TRY
         }
     }
 
-    for (size_t i = 0; i < test_tiles.size(); i ++) {
-        auto tile = &test_tiles[i];
-        std::string url = tile->get_url(base_url);
+    for (auto& tile: test_tiles) {
+        std::string url = tile.get_url(base_url);
         cpr::Response r = cpr::Get(cpr::Url{url});
         if (r.error.code != cpr::ErrorCode::OK) {
             printf("%s:\"%s\"\n", r.error.message.c_str(), r.url.c_str());
             continue;
         }
-        if (!tile->set_texture_from_data(render, r.text.data(), r.text.size())) {
-            printf("не загружено: %s\n", tile->get_url(base_url).c_str());
+        if (!tile.set_texture_from_data(render, r.text.data(), r.text.size())) {
+            printf("не загружено: %s\n", tile.get_url(base_url).c_str());
             continue;
         }
-        int idx = tile->get_index();
-        cache[idx] = tile;
-        printf("загружена плитка: %s\n", tile->get_url(base_url).c_str());    
+        int idx = tile.get_index();
+        cache[idx] = &tile;
+        printf("загружена плитка: %s\n", tile.get_url(base_url).c_str());    
     }
     printf("загружено %zd плиток\n", cache.size());
     SDL_AddEventWatch(event_handler, nullptr);
