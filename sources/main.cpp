@@ -106,7 +106,6 @@ void draw_tile(SDL_Renderer* render, int tx, int ty, float z) {
 bool draw_subtile(SDL_Renderer* render, int tx, int ty, int tz, int origx, int origy, float origz) {
     SDLTile* subtile = get_tile(tx, ty, tz);
     if (!subtile) {
-        printf("плитка %d:%d:%d не найдена\n", tx, ty, tz);
         return false;
     }
 
