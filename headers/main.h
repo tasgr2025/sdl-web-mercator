@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <cmath>
+#include <thread>
 #include <SDL.h>
 #include <SDL_image.h>
 #include <cpr/cpr.h>
@@ -54,5 +55,22 @@ void draw_map(SDL_Renderer* render);
 
 /// @brief
 void clean_cache();
+
+/// @brief
+/// @param render
+/// @param tile
+bool load_tile(SDL_Renderer* render, SDLTile& tile);
+
+/// @brief
+/// @param render
+void main_loop(SDL_Renderer *render);
+
+/// @brief 
+/// @param arg 
+void url_thread_proc(void* arg);
+
+/// @brief 
+/// @param url_thread 
+void url_thread_stop(std::thread& url_thread);
 
 #endif // MAIN_H

@@ -44,18 +44,35 @@ std::unordered_map<int, SDLTile*> cache;
 /// @brief
 std::vector<SDLTile> queue;
 
-/// @brief 
-Uint32 last_cache_check = 0;
-
-/// @brief
-size_t max_concurrent_requests = 1;
-
-/// @brief 
-size_t req_count = 0;
-
+std::mutex mutex;
+std::mutex cv_mutex;
+std::condition_variable cv;
+bool resume_thread { false };
+std::atomic<bool> run_thread { true };
+std::thread* url_thread = nullptr;
 
 void clean_cache() {
-    return;
+    for (auto pair: cache) {
+        delete pair.second;
+    }
+    cache.clear();
+}
+
+
+void url_thread_proc(void* arg) {
+    while (run_thread) {
+        mutex.lock();
+        size_t sz = queue.size();
+        mutex.unlock();
+        if (sz == 0) {
+            std::unique_lock<std::mutex> lk(cv_mutex);
+            cv.wait(lk, []{ return resume_thread; });
+            resume_thread = false;
+            lk.unlock();
+            cv.notify_one();
+            continue;
+        }
+    }
 }
 
 
@@ -210,6 +227,51 @@ void queue_redraw(SDL_Event* event) {
 }
 
 
+bool load_tile(SDL_Renderer* render, SDLTile& tile) {
+    std::string url = tile.get_url(base_url);
+    cpr::Response r = cpr::Get(cpr::Url{url});
+    if (r.error.code != cpr::ErrorCode::OK) {
+        printf("%s:\"%s\"\n", r.error.message.c_str(), r.url.c_str());
+        return false;
+    }
+    if (!tile.set_texture_from_data(render, r.text.data(), r.text.size())) {
+        printf("не загружено: %s\n", tile.get_url(base_url).c_str());
+        return false;
+    }
+    int idx = tile.get_index();
+    cache[idx] = &tile;
+    printf("загружена плитка: %s\n", tile.get_url(base_url).c_str());
+    return true;
+}
+
+
+void main_loop(SDL_Renderer *render) {
+    SDL_Event sdle = {0};
+    while (sdle.type != SDL_QUIT) {
+        int rc = SDL_WaitEvent(&sdle);
+        if (rc == 0) {
+            exit_on_sdl_error();
+        }
+        else if (sdle.type == SDL_WINDOWEVENT) {
+            if (sdle.window.event == SDL_WINDOWEVENT_EXPOSED) {
+                SDL_RenderClear(render);
+                draw_map(render);
+                SDL_RenderPresent(render);
+            }
+        }
+    }
+}
+
+
+void url_thread_stop() {
+    {   std::lock_guard<std::mutex> lk(cv_mutex);
+        resume_thread = true; }
+    cv.notify_one();
+    run_thread = false;
+    url_thread->join();
+}
+
+
 int main(int argc, char* argv[]) { CPPTRACE_TRY
 {
     CLI::App app{ "Отображает карту в проекции WebMercator" };
@@ -220,7 +282,6 @@ int main(int argc, char* argv[]) { CPPTRACE_TRY
     app.add_option("--base-url",     base_url,                "Шаблон адреса для получения плиток где вместо {0}, {1}, {2} будут подставлены x, y, z соответственно.")->capture_default_str();
     app.add_option("--zoom-step",    zoom_step,               "Шаг масштабирования.")->capture_default_str();
     app.add_option("--max-zoom",     max_zoom,                "Максимальный масштаб.")->capture_default_str();
-    app.add_option("--max-requests", max_concurrent_requests, "Максимальное количесво запорсов одновременно")->capture_default_str();
     CLI11_PARSE(app, argc, argv);
  
     SDL_version ver;
@@ -248,52 +309,32 @@ int main(int argc, char* argv[]) { CPPTRACE_TRY
     SDL_GetRendererOutputSize(render, &x, &y);
     printf("размер вывода визуализатора в пикселях: %dx%d\n", x, y);
 
-    std::vector<SDLTile> test_tiles;
+    std::thread new_thread {url_thread_proc, nullptr};
+    url_thread = &new_thread;
+
     for (int z = 0; z <= max_zoom; z ++) {
         int c = powf(2.0f, float(z));
         for (int y = 0; y < c; y ++) {
             for (int x = 0; x < c; x ++) {
-                 test_tiles.emplace_back(SDLTile(x, y, z));
+                 queue.emplace_back(SDLTile(x, y, z));
             }
         }
     }
 
-    for (auto& tile: test_tiles) {
-        std::string url = tile.get_url(base_url);
-        cpr::Response r = cpr::Get(cpr::Url{url});
-        if (r.error.code != cpr::ErrorCode::OK) {
-            printf("%s:\"%s\"\n", r.error.message.c_str(), r.url.c_str());
-            continue;
-        }
-        if (!tile.set_texture_from_data(render, r.text.data(), r.text.size())) {
-            printf("не загружено: %s\n", tile.get_url(base_url).c_str());
-            continue;
-        }
-        int idx = tile.get_index();
-        cache[idx] = &tile;
-        printf("загружена плитка: %s\n", tile.get_url(base_url).c_str());    
+    for (auto& tile: queue) {
+        load_tile(render, tile);
+        {   std::lock_guard<std::mutex> lk(cv_mutex);
+            resume_thread = true; }
+        cv.notify_one();
     }
     printf("загружено %zd плиток\n", cache.size());
     SDL_AddEventWatch(event_handler, nullptr);
-    SDL_Event sdle = {0};
-    while (sdle.type != SDL_QUIT) {
-        int rc = SDL_WaitEvent(&sdle);
-        if (rc == 0) {
-            exit_on_sdl_error();
-        }
-        else if (sdle.type == SDL_WINDOWEVENT) {
-            if (sdle.window.event == SDL_WINDOWEVENT_EXPOSED) {
-                SDL_RenderClear(render);
-                draw_map(render);
-                SDL_RenderPresent(render);
-            }
-        }
-    }
-
+    main_loop(render);
     SDL_DestroyWindow(sdlw);
     SDL_Quit();
+    url_thread_stop();
     exit(EXIT_SUCCESS);
-} CPPTRACE_CATCH(const std::exception& e) {
-    cpptrace::from_current_exception().print();
+}   CPPTRACE_CATCH(const std::exception& e) {
+        cpptrace::from_current_exception().print();
     }
 }
