@@ -400,7 +400,8 @@ int main(int argc, char* argv[]) { CPPTRACE_TRY
     SDL_Quit();
     url_thread_stop();
     exit(EXIT_SUCCESS);
-}   CPPTRACE_CATCH(const std::exception& e) {
-        cpptrace::from_current_exception().print();
+}
+CPPTRACE_CATCH(const std::exception& e) {
+    cpptrace::from_current_exception().print();
     }
 }
