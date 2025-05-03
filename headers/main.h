@@ -67,11 +67,6 @@ void clean_cache();
 
 /// @brief
 /// @param render
-/// @param tile
-bool load_tile(SDL_Renderer* render, SDLTile* tile);
-
-/// @brief
-/// @param render
 void main_loop(SDL_Renderer *render);
 
 /// @brief 
@@ -90,6 +85,6 @@ void url_thread_resume();
 /// @brief
 /// @param url
 /// @param data
-bool get_url_data(const std::string& url, std::vector<char>& data);
+bool get_url_data(const std::string& url, std::string& data);
 
 #endif // MAIN_H

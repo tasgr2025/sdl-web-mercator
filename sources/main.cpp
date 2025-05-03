@@ -43,7 +43,7 @@ std::unordered_map<int64_t, SDLTile*> cache;
 std::unordered_map<int64_t, ivec4> queue;
 
 /// @brief Данные изображений плиток
-std::unordered_map<int64_t, std::vector<char>> data;
+std::unordered_map<int64_t, std::string> data;
 
 std::mutex mutex;
 std::mutex cv_mutex;
@@ -112,7 +112,7 @@ void url_thread_proc(void* arg) {
         mutex.unlock();
         auto args = std::make_format_args(t.x, t.y, t.z);
         std::string url = std::vformat(base_url, args);
-        std::vector<char> img;
+        std::string img;
         if (!get_url_data(url, img)) {
             continue;
         }
@@ -237,9 +237,9 @@ SDLTile* get_tile(int x, int y, int z) {
 
 
 int event_handler(void *userdata, SDL_Event *event) {
-    ivec2 mouse_pos;
-    Uint32 ms = SDL_GetMouseState(&mouse_pos.x, &mouse_pos.y);
-    rollover = (mouse_pos.x > 0) && (mouse_pos.x < canvas_size.x) && (mouse_pos.y > 0) && (mouse_pos.y < canvas_size.y);
+    ivec2 mp;
+    Uint32 ms = SDL_GetMouseState(&mp.x, &mp.y);
+    rollover = (mp.x > 0) && (mp.x < canvas_size.x) && (mp.y > 0) && (mp.y < canvas_size.y);
     dragging &= rollover;
     
     if (!rollover) {
@@ -249,21 +249,21 @@ int event_handler(void *userdata, SDL_Event *event) {
     switch (event->type) {
     case SDL_MOUSEBUTTONDOWN:
         dragging = (SDL_BUTTON(1) & ms) > 0;
-        drag_pos = screen_to_world(xyz, canvas_size, mouse_pos);
+        drag_pos = screen_to_world(xyz, canvas_size, mp);
         break;
     case SDL_MOUSEBUTTONUP:
         dragging = false;
         break;
     case SDL_MOUSEMOTION:
         if (dragging) {
-            vec2 diff = drag_pos - screen_to_world(xyz, canvas_size, mouse_pos);
+            vec2 diff = drag_pos - screen_to_world(xyz, canvas_size, mp);
             xyz.x += diff.x;
             xyz.y += diff.y;
             queue_redraw();
         }
         break;
     case SDL_MOUSEWHEEL:
-        step_zoom(xyz, canvas_size, zoom_step * float(event->wheel.y), mouse_pos);
+        step_zoom(xyz, canvas_size, zoom_step * float(event->wheel.y), mp);
         queue_redraw();
         break;
     }
@@ -280,13 +280,12 @@ void queue_redraw() {
 }
 
 
-bool get_url_data(const std::string& url, std::vector<char>& data) {
+bool get_url_data(const std::string& url, std::string& img_data) {
     cpr::Response r = cpr::Get(cpr::Url{url});
     if (r.error.code != cpr::ErrorCode::OK) {
         return false;
     }
-    data.clear();
-    data.insert(data.end(), r.text.data(), r.text.data() + r.text.size());
+    img_data = r.text;
     return true;
 }
 
@@ -303,7 +302,7 @@ bool update_cache(SDL_Renderer *render)
     }
 
     std::vector<int64_t> idxs_erase;
-    for (const auto& it : data) {
+    for (const auto& it: data) {
         if (cache.find(it.first) == cache.end()) {
             continue;
         }
