@@ -16,6 +16,15 @@
 #define exit_on_sdl_error() { printf("%s:%u: \"%s\"\n", __FILE__, __LINE__, SDL_GetError()); cpptrace::from_current_exception().print(); throw std::runtime_error(""); }
 #define warn_on_sdl_error() { printf("внимание: %s:%u: \"%s\"\n", __FILE__, __LINE__, SDL_GetError()); }
 
+
+/// @brief Возвращает индекс плитки самой новой по времени из очереди загрузки
+/// @return Одномерный индекс плитки
+int64_t get_next_in_queue();
+
+/// @brief Возвращает индекс плитки самой новой по времени из кэша
+/// @return Одномерный индекс плитки
+int64_t get_next_in_cache();
+
 /// @brief Обработчик событий SDL
 /// @param userdata Указатель на произвольные данные
 /// @param event Событие 
@@ -23,7 +32,7 @@
 int event_handler(void *userdata, SDL_Event *event);
 
 /// @brief Создаёт очередь для перерисовки
-void queue_redraw(SDL_Event* event);
+void queue_redraw();
 
 /// @brief 
 /// @param tx 
@@ -59,7 +68,7 @@ void clean_cache();
 /// @brief
 /// @param render
 /// @param tile
-bool load_tile(SDL_Renderer* render, SDLTile& tile);
+bool load_tile(SDL_Renderer* render, SDLTile* tile);
 
 /// @brief
 /// @param render
@@ -71,6 +80,16 @@ void url_thread_proc(void* arg);
 
 /// @brief 
 /// @param url_thread 
-void url_thread_stop(std::thread& url_thread);
+void url_thread_stop();
+
+
+/// @brief
+void url_thread_resume();
+
+
+/// @brief
+/// @param url
+/// @param data
+bool get_url_data(const std::string& url, std::vector<char>& data);
 
 #endif // MAIN_H

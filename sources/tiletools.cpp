@@ -149,22 +149,21 @@ vec2 tile_to_lonlat(float tx, float ty, float tz) {
 
 
 vec2 tile_to_world(float tx, float ty, float tz) {
-    float n = powf(2.0f, floorf(tz));
-    float x =   (tx / n) * 2.0f - 1.0f;
-    float y = -((ty / n) * 2.0f - 1.0f);
-    return {x, y};
+    double n = pow(2.0, floor(tz));
+    double x =   (tx / n) * 2.0 - 1.0;
+    double y = -((ty / n) * 2.0 - 1.0);
+    return {float(x), float(y)};
 }
 
 
-uint32 tile_to_index(float tx, float ty, float tz) {
-    float i = (powf(4.0f, tz) - 1.0f) / 3.0f;
-    float n = powf(2.0f, tz);
-    return uint32(i + (ty * n + tx));
+int64_t tile_to_index(float tx, float ty, float tz) {
+    double i = (pow(4.0, tz) - 1.0) / 3.0;
+    double n =  pow(2.0, tz);
+    return int64_t(i + (ty * n + tx));
 }
 
 
 float haversine_m(float lat1, float lon1, float lat2, float lon2) {
-    // Преобразование градусов в радианы
     float rlat1 = deg_to_rad(lat1);
     float rlon1 = deg_to_rad(lon1);
     float rlat2 = deg_to_rad(lat2);
@@ -176,7 +175,6 @@ float haversine_m(float lat1, float lon1, float lat2, float lon2) {
     float delta = rlon2 - rlon1;
     float cdelta = cosf(delta);
     float sdelta = sinf(delta);
-    // Вычисление длины большого круга
     float y = sqrtf(powf(cl2 * sdelta, 2.0f) + powf(cl1 * sl2 - sl1 * cl2 * cdelta, 2.0f));
     float x = sl1 * sl2 + cl1 * cl2 * cdelta;
     float ad = atan2f(y, x);

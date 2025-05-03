@@ -7,9 +7,7 @@ static const int IMG_INIT_EVERYTHING = IMG_INIT_JPG | IMG_INIT_PNG | IMG_INIT_TI
 static const Uint32 render_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE;
 
 /// @brief Размер поверхности для рисования
-vec2 canvas_size { 512.0f, 512.0f };
-
-vec2 window_size { 512.0f, 512.0f };
+vec2 canvas_size { 1280.0f, 768.0f };
 
 /// @brief Текущая позиция WebMercator
 vec3 xyz { 0.0f, 0.0f, 0.0f };
@@ -27,7 +25,7 @@ float zoom_step = 0.05;
 int min_zoom = 0.0f;
 
 /// @brief Максимальный уровень детализации
-int max_zoom = 3.0f;
+int max_zoom = 19.0f;
 
 /// @brief Флаг. Перетаскивания мышкой активно
 bool dragging { false };
@@ -38,11 +36,14 @@ vec2 drag_pos { 0.0f, 0.0f };
 /// @brief <...>
 bool rollover { false };
 
-/// @brief
-std::unordered_map<int, SDLTile*> cache;
+/// @brief Загруженные плитки
+std::unordered_map<int64_t, SDLTile*> cache;
 
-/// @brief
-std::vector<SDLTile> queue;
+/// @brief Очередь запросов плиток
+std::unordered_map<int64_t, ivec4> queue;
+
+/// @brief Данные изображений плиток
+std::unordered_map<int64_t, std::vector<char>> data;
 
 std::mutex mutex;
 std::mutex cv_mutex;
@@ -59,10 +60,38 @@ void clean_cache() {
 }
 
 
+int64_t get_next_in_queue() {
+    int64_t idx = -1;
+    int tick = 0;
+    for (const auto& item : queue) {
+        if (item.second.w > tick) {
+            idx = item.first;
+            tick = item.second.w;
+        }
+    }
+    return idx;
+}
+
+
+int64_t get_next_in_cache() {
+    int tick = -1;
+    int64_t idx = 0;
+    for (const auto& item : cache) {
+        int item_tick = item.second->get_tick();
+        if (item_tick > tick) {
+            tick = item_tick;
+            idx = item.first;
+        }
+    }
+    return idx;
+}
+
+
 void url_thread_proc(void* arg) {
     while (run_thread) {
+        size_t sz = 0U;
         mutex.lock();
-        size_t sz = queue.size();
+        sz = queue.size();
         mutex.unlock();
         if (sz == 0) {
             std::unique_lock<std::mutex> lk(cv_mutex);
@@ -72,6 +101,25 @@ void url_thread_proc(void* arg) {
             cv.notify_one();
             continue;
         }
+        mutex.lock();
+        int64_t idx = get_next_in_queue();
+        if (idx < 0) {
+            mutex.unlock();
+            continue;
+        }
+        ivec4 t = queue[idx];
+        queue.erase(idx);
+        mutex.unlock();
+        auto args = std::make_format_args(t.x, t.y, t.z);
+        std::string url = std::vformat(base_url, args);
+        std::vector<char> img;
+        if (!get_url_data(url, img)) {
+            continue;
+        }
+        mutex.lock();
+        data[idx] = img;
+        mutex.unlock();
+        queue_redraw();
     }
 }
 
@@ -80,13 +128,11 @@ void draw_map(SDL_Renderer* render) {
     float z = min(float(max_zoom), xyz.z);
     vec2 t1 = screen_to_tile(z, xyz, canvas_size, vec2{0.0f, 0.0f});
     vec2 t2 = screen_to_tile(z, xyz, canvas_size, canvas_size) + vec2{1.0f, 1.0f};
-    printf(">>> %0.1f..%0.1f (%0.3f) xyz.x:%0.3f xyz.z:%0.3f\n", t1.x, t2.x, t1.x - t2.x, xyz.x, xyz.z);
     for (int x = int(t1.x); x < int(t2.x); x += 1) {
         for (int y = int(t1.y); y < int(t2.y); y += 1) {
             draw_tile(render, x, y, z);
         }
     }
-    printf("<<<\n");
     return;
 }
 
@@ -100,20 +146,19 @@ void draw_tile(SDL_Renderer* render, int tx, int ty, float z) {
         if (tile->get_texture()) {
             vec2 p3 = p2 - p1;
             SDL_Rect rect_dst(p1.x, p1.y, p3.x, p3.y);
-            printf("tile: %d %d\n", rect_dst.x, rect_dst.y);
             SDL_RenderCopy(render, tile->get_texture(), NULL, &rect_dst);
         }
-    }
-    else {
-        float zzz = tz;
-        float txx = tx;
-        float tyy = ty;
-        while (zzz > 1.0f) {
-            zzz -= 1.0f;
-            txx = floorf(txx / 2.0f);
-            tyy = floorf(tyy / 2.0f);
-            if (draw_subtile(render, txx, tyy, zzz, tx, ty, tz)) {
-                break;
+        else {
+            float zzz = tz;
+            float txx = tx;
+            float tyy = ty;
+            while (zzz > 1.0f) {
+                zzz -= 1.0f;
+                txx = floorf(txx / 2.0f);
+                tyy = floorf(tyy / 2.0f);
+                if (draw_subtile(render, txx, tyy, zzz, tx, ty, tz)) {
+                    break;
+                }
             }
         }
     }
@@ -121,8 +166,12 @@ void draw_tile(SDL_Renderer* render, int tx, int ty, float z) {
 
 
 bool draw_subtile(SDL_Renderer* render, int tx, int ty, int tz, int origx, int origy, float origz) {
-    SDLTile* subtile = get_tile(tx, ty, tz);
-    if (!subtile) {
+    SDLTile* tile = get_tile(tx, ty, tz);
+    if (!tile) {
+        return false;
+    }
+    SDL_Texture* texture = tile->get_texture();
+    if (!texture) {
         return false;
     }
 
@@ -141,17 +190,12 @@ bool draw_subtile(SDL_Renderer* render, int tx, int ty, int tz, int origx, int o
     float yrat2 = (p2.y - x1.y) / ydiff;
     float yheight = yrat2 - yrat1;
 
-    vec2 tile_size = get_tile_size();
-    SDL_Rect rect_src ( xrat1 * tile_size.x, yrat1 * tile_size.y, xwidth * tile_size.x, yheight * tile_size.y );
-    SDL_Texture* texture = subtile->get_texture();
-    if (texture) {
-        vec2 dp = p2 - p1;
-        SDL_Rect rect_dst (p1.x, p1.y, dp.x, dp.y);
-        printf("sub_tile: %d %d\n", rect_dst.x, rect_dst.y);
-        SDL_RenderCopy(render, texture, &rect_src, &rect_dst);
-        return true;
-    }
-    return false;
+    SDL_Point tile_size = tile->get_size();
+    SDL_Rect rect_src(xrat1 * tile_size.x, yrat1 * tile_size.y, xwidth * tile_size.x, yheight * tile_size.y);
+    vec2 dp = p2 - p1;
+    SDL_Rect rect_dst(p1.x, p1.y, dp.x, dp.y);
+    SDL_RenderCopy(render, texture, &rect_src, &rect_dst);
+    return true;
 }
 
 
@@ -170,17 +214,25 @@ SDLTile* get_tile(int x, int y, int z) {
         return nullptr;
     }
 
-    int idx = tile_to_index(x, y, z);
+    int64_t idx = tile_to_index(x, y, z);
     Uint32 tick = SDL_GetTicks();
 
-    auto item = cache.find(idx);
-    if (item != cache.end()) {
-        item->second->set_tick(tick);
-        return item->second;
+    auto cache_item = cache.find(idx);
+    if (cache_item != cache.end()) {
+        cache_item->second->set_tick(tick);
+        return cache_item->second;
     }
 
-    queue.push_back(SDLTile(x, y, z, tick));
-    return &queue.back();
+    mutex.lock();
+    auto queue_item = queue.find(idx);
+    if (queue_item == queue.end()) {
+        queue[idx] = ivec4(x, y, z, tick);
+    }
+    SDLTile* tile = new SDLTile(x, y, z, tick);
+    cache[idx] = tile;
+    mutex.unlock();
+    url_thread_resume();
+    return tile;
 }
 
 
@@ -207,46 +259,70 @@ int event_handler(void *userdata, SDL_Event *event) {
             vec2 diff = drag_pos - screen_to_world(xyz, canvas_size, mouse_pos);
             xyz.x += diff.x;
             xyz.y += diff.y;
-            queue_redraw(event);
+            queue_redraw();
         }
         break;
     case SDL_MOUSEWHEEL:
         step_zoom(xyz, canvas_size, zoom_step * float(event->wheel.y), mouse_pos);
-        queue_redraw(event);
+        queue_redraw();
         break;
     }
     return 0;
 }
 
 
-void queue_redraw(SDL_Event* event) {
-    event->window.event = SDL_WINDOWEVENT_EXPOSED;
-    event->type = SDL_WINDOWEVENT;
-    SDL_PushEvent(event);
+void queue_redraw() {
+    SDL_Event event;
+    event.window.event = SDL_WINDOWEVENT_EXPOSED;
+    event.type = SDL_WINDOWEVENT;
+    SDL_PushEvent(&event);
     return;
 }
 
 
-bool load_tile(SDL_Renderer* render, SDLTile& tile) {
-    std::string url = tile.get_url(base_url);
+bool get_url_data(const std::string& url, std::vector<char>& data) {
     cpr::Response r = cpr::Get(cpr::Url{url});
     if (r.error.code != cpr::ErrorCode::OK) {
-        printf("%s:\"%s\"\n", r.error.message.c_str(), r.url.c_str());
         return false;
     }
-    if (!tile.set_texture_from_data(render, r.text.data(), r.text.size())) {
-        printf("не загружено: %s\n", tile.get_url(base_url).c_str());
-        return false;
-    }
-    int idx = tile.get_index();
-    cache[idx] = &tile;
-    printf("загружена плитка: %s\n", tile.get_url(base_url).c_str());
+    data.clear();
+    data.insert(data.end(), r.text.data(), r.text.data() + r.text.size());
     return true;
 }
 
 
-void main_loop(SDL_Renderer *render) {
-    SDL_Event sdle = {0};
+bool update_cache(SDL_Renderer *render)
+{
+    bool rc = false;
+    if (!mutex.try_lock()) {
+        return false;
+    }
+    if (!data.size()) {
+        mutex.unlock();
+        return false;
+    }
+
+    std::vector<int64_t> idxs_erase;
+    for (const auto& it : data) {
+        if (cache.find(it.first) == cache.end()) {
+            continue;
+        }
+        cache[it.first]->set_texture_from_data(render, &it.second[0], it.second.size());
+        idxs_erase.push_back(it.first);
+    }
+    for (const auto& idx: idxs_erase) {
+        data.erase(idx);
+    }
+
+    mutex.unlock();
+    return true;
+}
+
+
+void main_loop(SDL_Renderer *render)
+{
+    SDL_Event sdle;
+    sdle.type = SDL_FIRSTEVENT;
     while (sdle.type != SDL_QUIT) {
         int rc = SDL_WaitEvent(&sdle);
         if (rc == 0) {
@@ -257,6 +333,9 @@ void main_loop(SDL_Renderer *render) {
                 SDL_RenderClear(render);
                 draw_map(render);
                 SDL_RenderPresent(render);
+                if (update_cache(render)) {
+                    queue_redraw();
+                }
             }
         }
     }
@@ -264,11 +343,16 @@ void main_loop(SDL_Renderer *render) {
 
 
 void url_thread_stop() {
+    url_thread_resume();
+    run_thread = false;
+    url_thread->join();
+}
+
+
+void url_thread_resume() {
     {   std::lock_guard<std::mutex> lk(cv_mutex);
         resume_thread = true; }
     cv.notify_one();
-    run_thread = false;
-    url_thread->join();
 }
 
 
@@ -278,7 +362,6 @@ int main(int argc, char* argv[]) { CPPTRACE_TRY
     argv = app.ensure_utf8(argv);
     app.add_option("--canvas-size",  canvas_size,             "Размер поверхности для отображения карты в пикселях по горизонтали и вертикали.")->expected(0, 2)->capture_default_str();
     app.add_option("--tile-size",    tile_size,               "Размер плитки (фрагмента) карты в пикселях по горизонтали и вертикали.")->expected(0, 2)->capture_default_str();
-    app.add_option("--window-size",  window_size,             "Размер окна программы в пикселях по горизонтали и вертикали.")->expected(0, 2)->capture_default_str();
     app.add_option("--base-url",     base_url,                "Шаблон адреса для получения плиток где вместо {0}, {1}, {2} будут подставлены x, y, z соответственно.")->capture_default_str();
     app.add_option("--zoom-step",    zoom_step,               "Шаг масштабирования.")->capture_default_str();
     app.add_option("--max-zoom",     max_zoom,                "Максимальный масштаб.")->capture_default_str();
@@ -311,23 +394,6 @@ int main(int argc, char* argv[]) { CPPTRACE_TRY
 
     std::thread new_thread {url_thread_proc, nullptr};
     url_thread = &new_thread;
-
-    for (int z = 0; z <= max_zoom; z ++) {
-        int c = powf(2.0f, float(z));
-        for (int y = 0; y < c; y ++) {
-            for (int x = 0; x < c; x ++) {
-                 queue.emplace_back(SDLTile(x, y, z));
-            }
-        }
-    }
-
-    for (auto& tile: queue) {
-        load_tile(render, tile);
-        {   std::lock_guard<std::mutex> lk(cv_mutex);
-            resume_thread = true; }
-        cv.notify_one();
-    }
-    printf("загружено %zd плиток\n", cache.size());
     SDL_AddEventWatch(event_handler, nullptr);
     main_loop(render);
     SDL_DestroyWindow(sdlw);

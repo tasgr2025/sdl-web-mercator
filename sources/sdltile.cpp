@@ -9,10 +9,6 @@ Uint32 SDLTile::get_index() {
 
 
 bool SDLTile::set_texture_from_data(SDL_Renderer *render, const char *data, const size_t len) {
-    if (texture) {
-        SDL_DestroyTexture(texture);
-        texture = nullptr;
-    }
     SDL_RWops* rwop = SDL_RWFromConstMem(data, len);
     if (!rwop) {
         return false;
@@ -21,12 +17,17 @@ bool SDLTile::set_texture_from_data(SDL_Renderer *render, const char *data, cons
     if (!surface) {
         return false;
     }
+    SDL_RWclose(rwop);
+
+    if (texture) {
+        SDL_DestroyTexture(texture);
+        texture = nullptr;
+    }
     texture = SDL_CreateTextureFromSurface(render, surface);
     if (!texture) {
         return false;
     }
     SDL_FreeSurface(surface);
-    SDL_RWclose(rwop);
     return true;
 }
 
