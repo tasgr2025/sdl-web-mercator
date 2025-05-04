@@ -8,7 +8,7 @@
 
 class SDLTile {
     Uint32 x, y, z, t;
-    SDL_Texture* texture{nullptr};
+    SDL_Texture* texture { nullptr };
     Uint32 tick{0U};
 public:
     SDLTile() {}
@@ -20,5 +20,5 @@ public:
     void set_tick(Uint32 tick) { this->tick = tick; }
     Uint32 get_tick() { return tick; }
     SDL_Point get_size();
-    Uint32 get_index();
+    Uint32 get_zoom() { return z; }
 };

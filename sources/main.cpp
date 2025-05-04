@@ -10,28 +10,28 @@ static const Uint32 render_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESE
 vec2 canvas_size { 1280.0f, 768.0f };
 
 /// @brief Текущая позиция WebMercator
-vec3 xyz { 0.0f, 0.0f, 0.0f };
+dvec3 xyz { 0.0, 0.0, 0.0 };
 
 /// @brief Размер плитки
-vec2 tile_size { get_tile_size()};
+vec2 tile_size { 256.0f, 256.0f };
 
 /// @brief Шаблон адреса для получения плиток
 std::string base_url{"https://tile.openstreetmap.org/{2}/{0}/{1}.png"};
 
 /// @brief Шаг масштабирования
-float zoom_step = 0.05;
+double zoom_step = 0.05;
 
 /// @brief Минимальный уровень детализации
-int min_zoom = 0.0f;
+int min_zoom = 0;
 
 /// @brief Максимальный уровень детализации
-int max_zoom = 19.0f;
+int max_zoom = 20;
 
 /// @brief Флаг. Перетаскивания мышкой активно
 bool dragging { false };
 
 /// @brief Позиция перетаскивания мышкой
-vec2 drag_pos { 0.0f, 0.0f };
+dvec2 drag_pos { 0.0, 0.0 };
 
 /// @brief <...>
 bool rollover { false };
@@ -125,11 +125,11 @@ void url_thread_proc(void* arg) {
 
 
 void draw_map(SDL_Renderer* render) {
-    float z = min(float(max_zoom), xyz.z);
-    vec2 t1 = screen_to_tile(z, xyz, canvas_size, vec2{0.0f, 0.0f});
-    vec2 t2 = screen_to_tile(z, xyz, canvas_size, canvas_size) + vec2{1.0f, 1.0f};
-    for (int x = int(t1.x); x < int(t2.x); x += 1) {
-        for (int y = int(t1.y); y < int(t2.y); y += 1) {
+    double z = min(double(max_zoom), xyz.z);
+    dvec2 t1 = screen_to_tile(z, xyz, canvas_size, {0.0, 0.0});
+    dvec2 t2 = screen_to_tile(z, xyz, canvas_size, canvas_size) + dvec2{1.0, 1.0};
+    for (auto x = t1.x; x < t2.x; x += 1) {
+        for (auto y = t1.y; y < t2.y; y += 1) {
             draw_tile(render, x, y, z);
         }
     }
@@ -137,31 +137,35 @@ void draw_map(SDL_Renderer* render) {
 }
 
 
-void draw_tile(SDL_Renderer* render, int tx, int ty, float z) {
-    float tz = floorf(z);
-    vec2 p1 = tile_to_screen(xyz, canvas_size, vec3{tx,        ty,        z});
-    vec2 p2 = tile_to_screen(xyz, canvas_size, vec3{tx + 1.0f, ty + 1.0f, z});
+bool draw_tile(SDL_Renderer* render, double tx, double ty, double z) {
+    double tz = floor(z);
+    dvec2 p1 = tile_to_screen(xyz, canvas_size, vec3{tx,        ty,        z});
+    dvec2 p2 = tile_to_screen(xyz, canvas_size, vec3{tx + 1.0f, ty + 1.0f, z});
     SDLTile* tile = get_tile(tx, ty, tz);
+    bool rc = false;
     if (tile) {
         if (tile->get_texture()) {
-            vec2 p3 = p2 - p1;
-            SDL_Rect rect_dst(p1.x, p1.y, p3.x, p3.y);
+            dvec2 p3 = p2 - p1;
+            SDL_Rect rect_dst(round(p1.x), round(p1.y), round(p3.x), round(p3.y));
             SDL_RenderCopy(render, tile->get_texture(), NULL, &rect_dst);
+            rc = true;
         }
         else {
-            float zzz = tz;
-            float txx = tx;
-            float tyy = ty;
-            while (zzz > 1.0f) {
-                zzz -= 1.0f;
-                txx = floorf(txx / 2.0f);
-                tyy = floorf(tyy / 2.0f);
-                if (draw_subtile(render, txx, tyy, zzz, tx, ty, tz)) {
+            double zzz = tz;
+            double txx = tx;
+            double tyy = ty;
+            while (zzz >= 1.0) {
+                zzz -= 1.0;
+                txx = floor(txx / 2.0);
+                tyy = floor(tyy / 2.0);
+                if (draw_subtile(render, round(txx), round(tyy), round(zzz), round(tx), round(ty), tz)) {
+                    rc = true;
                     break;
                 }
             }
         }
     }
+    return rc;
 }
 
 
@@ -175,32 +179,36 @@ bool draw_subtile(SDL_Renderer* render, int tx, int ty, int tz, int origx, int o
         return false;
     }
 
-    vec2 p1 = tile_to_screen(xyz, canvas_size, vec3{float(origx),     float(origy),     float(origz)});
-    vec2 p2 = tile_to_screen(xyz, canvas_size, vec3{float(origx + 1), float(origy + 1), float(origz)});
-    vec2 x1 = tile_to_screen(xyz, canvas_size, vec3{float(tx),        float(ty),        float(tz)});
-    vec2 x2 = tile_to_screen(xyz, canvas_size, vec3{float(tx + 1),    float(ty + 1),    float(tz)});
+    dvec2 p1 = tile_to_screen(xyz, canvas_size, {origx,       origy,       origz});
+    dvec2 p2 = tile_to_screen(xyz, canvas_size, {origx + 1.0, origy + 1.0, origz});
+    dvec2 x1 = tile_to_screen(xyz, canvas_size, {tx,          ty,          tz});
+    dvec2 x2 = tile_to_screen(xyz, canvas_size, {tx + 1.0,    ty + 1.0,    tz});
 
-    float xdiff = x2.x - x1.x;
-    float xrat1 = (p1.x - x1.x) / xdiff;
-    float xrat2 = (p2.x - x1.x) / xdiff;
-    float xwidth = xrat2 - xrat1;
+    double xdiff = x2.x - x1.x;
+    double xrat1 = (p1.x - x1.x) / xdiff;
+    double xrat2 = (p2.x - x1.x) / xdiff;
+    double xwidth = xrat2 - xrat1;
 
-    float ydiff = x2.y - x1.y;
-    float yrat1 = (p1.y - x1.y) / ydiff;
-    float yrat2 = (p2.y - x1.y) / ydiff;
-    float yheight = yrat2 - yrat1;
+    double ydiff = x2.y - x1.y;
+    double yrat1 = (p1.y - x1.y) / ydiff;
+    double yrat2 = (p2.y - x1.y) / ydiff;
+    double yheight = yrat2 - yrat1;
 
     SDL_Point tile_size = tile->get_size();
-    SDL_Rect rect_src(xrat1 * tile_size.x, yrat1 * tile_size.y, xwidth * tile_size.x, yheight * tile_size.y);
-    vec2 dp = p2 - p1;
-    SDL_Rect rect_dst(p1.x, p1.y, dp.x, dp.y);
+    SDL_Rect rect_src(
+        round(xrat1 * tile_size.x),
+        round(yrat1 * tile_size.y),
+        round(xwidth * tile_size.x),
+        round(yheight * tile_size.y));
+    dvec2 dp = p2 - p1;
+    SDL_Rect rect_dst(round(p1.x), round(p1.y), round(dp.x), round(dp.y));
     SDL_RenderCopy(render, texture, &rect_src, &rect_dst);
     return true;
 }
 
 
 SDLTile* get_tile(int x, int y, int z) {
-    int n = powf(2.0f, z);
+    int n = pow(2.0, z);
     if (x >= 0) {
         x %= n;
     }
@@ -256,7 +264,7 @@ int event_handler(void *userdata, SDL_Event *event) {
         break;
     case SDL_MOUSEMOTION:
         if (dragging) {
-            vec2 diff = drag_pos - screen_to_world(xyz, canvas_size, mp);
+            dvec2 diff = drag_pos - screen_to_world(xyz, canvas_size, mp);
             xyz.x += diff.x;
             xyz.y += diff.y;
             queue_redraw();
@@ -386,10 +394,6 @@ int main(int argc, char* argv[]) { CPPTRACE_TRY
     if (rc != IMG_INIT_EVERYTHING) {
         warn_on_sdl_error();
     }
-
-    int x=0, y=0;
-    SDL_GetRendererOutputSize(render, &x, &y);
-    printf("размер вывода визуализатора в пикселях: %dx%d\n", x, y);
 
     std::thread new_thread {url_thread_proc, nullptr};
     url_thread = &new_thread;

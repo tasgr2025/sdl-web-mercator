@@ -1,13 +1,6 @@
 #include "sdltile.h"
 
 
-Uint32 SDLTile::get_index() {
-    float i = (powf(4.0f, z) - 1.0f) / 3.0f;
-    float n = powf(2.0f, z);
-    return Uint32(i + (y * n + x));
-}
-
-
 bool SDLTile::set_texture_from_data(SDL_Renderer *render, const char *data, const size_t len) {
     SDL_RWops* rwop = SDL_RWFromConstMem(data, len);
     if (!rwop) {

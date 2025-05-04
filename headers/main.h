@@ -56,7 +56,7 @@ SDLTile* get_tile(int x, int y, int z);
 /// @param tx 
 /// @param ty 
 /// @param tz 
-void draw_tile(SDL_Renderer* render, int tx, int ty, float tz);
+bool draw_tile(SDL_Renderer* render, double tx, double ty, double tz);
 
 /// @brief
 /// @param render

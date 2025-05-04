@@ -7,177 +7,177 @@ static float tile_width =  256.0f;
 static float tile_height = 256.0f;
 static const float R = 6372795.0f;
 static float min_zoom = 0.0f;  // TODO: убрать этот параметр
-static float max_zoom = 19.0;  // TODO: убрать этот параметр
+static float max_zoom = 20.0;  // TODO: убрать этот параметр
 
 
-void set_zoom(vec3& xyz, const vec2& canvas_size, float zoom, const ivec2& pivot) {
-    vec2 p1 = screen_to_world(xyz, canvas_size, pivot);
+void set_zoom(dvec3& xyz, const dvec2& canvas_size, float zoom, const ivec2& pivot) {
+    dvec2 p1 = screen_to_world(xyz, canvas_size, pivot);
     xyz.z = clamp(zoom, max_zoom, min_zoom);
-    vec2 p2 = screen_to_world(xyz, canvas_size, pivot);
+    dvec2 p2 = screen_to_world(xyz, canvas_size, pivot);
     xyz.x -= p2.x - p1.x;
     xyz.y -= p2.y - p1.y;
 }
 
 
-void multiply_zoom(vec3& xyz, const vec2& canvas_size, float multiplier, const ivec2& pivot) {
-    vec2 p1 = screen_to_world(xyz, canvas_size, pivot);
-    xyz.z = clamp(xyz.z * multiplier, min_zoom, max_zoom);
-    vec2 p2 = screen_to_world(xyz, canvas_size, pivot);
+void multiply_zoom(dvec3& xyz, const dvec2& canvas_size, float multiplier, const ivec2& pivot) {
+    dvec2 p1 = screen_to_world(xyz, canvas_size, pivot);
+    xyz.z = clamp(xyz.z * multiplier, double(min_zoom), double(max_zoom));
+    dvec2 p2 = screen_to_world(xyz, canvas_size, pivot);
     xyz.x -= p2.x - p1.x;
     xyz.y -= p2.y - p1.y;
 }
 
 
-void step_zoom(vec3& xyz, const vec2& canvas_size, float step, const ivec2& pivot) {
-    vec2 p1 = screen_to_world(xyz, canvas_size, pivot);
-    xyz.z = clamp(xyz.z + step, min_zoom, max_zoom);
-    vec2 p2 = screen_to_world(xyz, canvas_size, pivot);
+void step_zoom(dvec3& xyz, const dvec2& canvas_size, float step, const ivec2& pivot) {
+    dvec2 p1 = screen_to_world(xyz, canvas_size, pivot);
+    xyz.z = clamp(xyz.z + step, double(min_zoom), double(max_zoom));
+    dvec2 p2 = screen_to_world(xyz, canvas_size, pivot);
     xyz.x -= p2.x - p1.x;
     xyz.y -= p2.y - p1.y;
 }
 
 
-vec2 screen_to_lonlat(const vec3& xyz, const vec2& canvas_size, const vec2& screen_coords) {
-    vec2 w = screen_to_world(xyz, canvas_size, screen_coords);
+dvec2 screen_to_lonlat(const dvec3& xyz, const dvec2& canvas_size, const dvec2& screen_coords) {
+    dvec2 w = screen_to_world(xyz, canvas_size, screen_coords);
     return world_to_lonlat(w.x, w.y);
 }
 
 
-vec2 screen_to_world(const vec3& xyz, const vec2& canvas_size, const ivec2 &screen_coords) {
-    float n = powf(2.0f, xyz.z);
-    float span_w = n * tile_width;
-    float span_h = n * tile_height;
-    float px = float(screen_coords.x) - canvas_size.x / 2.0f + span_w / 2.0f;
-    float py = float(screen_coords.y) - canvas_size.y / 2.0f + span_h / 2.0f;
-    float xr = px / span_w;
-    float yr = py / span_h;
-    float x =  ( xr * 2.0f  - 1.0f) + xyz.x;
-    float y = ((-yr * 2.0f) + 1.0f) + xyz.y;
+dvec2 screen_to_world(const dvec3& xyz, const dvec2& canvas_size, const ivec2 &screen_coords) {
+    double n = pow(2.0, xyz.z);
+    double span_w = n * tile_width;
+    double span_h = n * tile_height;
+    double px = double(screen_coords.x) - canvas_size.x / 2.0 + span_w / 2.0;
+    double py = double(screen_coords.y) - canvas_size.y / 2.0 + span_h / 2.0;
+    double xr = px / span_w;
+    double yr = py / span_h;
+    double x =  ( xr * 2.0  - 1.0) + xyz.x;
+    double y = ((-yr * 2.0) + 1.0) + xyz.y;
     return {x, y};
 }
 
 
-vec2 screen_to_tile(float z, const vec3& xyz, const vec2& canvas_size, const vec2& screen_coords) {
-    vec2 world = screen_to_world(xyz, canvas_size, screen_coords);
+dvec2 screen_to_tile(float z, const dvec3& xyz, const dvec2& canvas_size, const dvec2& screen_coords) {
+    dvec2 world = screen_to_world(xyz, canvas_size, screen_coords);
     return world_to_tile(world.x, world.y, z);
 }
 
 
-vec2 tile_to_screen(const vec3& xyz, const vec2& canvas_size, const vec3& tile_coords) {
-    vec2 w = tile_to_world(tile_coords.x, tile_coords.y, tile_coords.z);
+dvec2 tile_to_screen(const dvec3& xyz, const dvec2& canvas_size, const dvec3& tile_coords) {
+    dvec2 w = tile_to_world(tile_coords);
     return world_to_screen(xyz, canvas_size, w);
 }
 
 
-vec2 world_to_screen(const vec3& xyz, const vec2& canvas_size, const vec2& world_coords) {   
-    float n = powf(2.0f, xyz.z);
-    float w = n * tile_width;
-    float h = n * tile_height;
-    float xr = ( (world_coords.x - xyz.x) + 1.0f) / 2.0f;
-    float yr = (-(world_coords.y - xyz.y) + 1.0f) / 2.0f;
-    float x = w * xr - w / 2.0f + canvas_size.x / 2.0f;
-    float y = h * yr - h / 2.0f + canvas_size.y / 2.0f;
-    return {ceilf(x), ceilf(y)};
+dvec2 world_to_screen(const dvec3& xyz, const dvec2& canvas_size, const dvec2& world_coords) {   
+    double n = pow(2.0, xyz.z);
+    double w = n * tile_width;
+    double h = n * tile_height;
+    double xr = ( (world_coords.x - xyz.x) + 1.0) / 2.0;
+    double yr = (-(world_coords.y - xyz.y) + 1.0) / 2.0;
+    double x = w * xr - w / 2.0 + canvas_size.x / 2.0;
+    double y = h * yr - h / 2.0 + canvas_size.y / 2.0;
+    return {ceil(x), ceil(y)};
 }
 
 
-vec2 lonlat_to_screen(const vec3& xyz, const vec2& canvas_size, const vec2& ll) {
-     vec2 wp = lonlat_to_world(ll);
+dvec2 lonlat_to_screen(const dvec3& xyz, const dvec2& canvas_size, const dvec2& ll) {
+     dvec2 wp = lonlat_to_world(ll);
      return world_to_screen(xyz, wp, canvas_size);
 }
 
 
-vec2 get_zoom_bounds() {
+dvec2 get_zoom_bounds() {
     return {min_zoom, max_zoom};
 }
 
 
-vec2 get_tile_size() {
+dvec2 get_tile_size() {
     return {tile_width, tile_height};
 }
 
 
-void set_tile_size (const vec2& ts) {
+void set_tile_size (const dvec2& ts) {
     tile_width = ts.x;
     tile_height = ts.y;
 }
 
 
-float deg_to_rad(float v) {
-    return v * (M_PI / 180.0f);
+double deg_to_rad(double v) {
+    return v * (M_PI / 180.0);
 }
 
 
-vec2 lonlat_to_world(const vec2& ll) {
-    float x = ll.x / 180.0f;
-    float latsin = sinf(deg_to_rad(ll.y) * copysignf(1.0f, ll.y));
-    float y = (copysignf(1.0f, ll.y) * (logf((1.0f + latsin) / (1.0f - latsin)) / 2.0f)) / M_PI;
+dvec2 lonlat_to_world(const dvec2& ll) {
+    double x = ll.x / 180.0;
+    double latsin = sin(deg_to_rad(ll.y) * copysign(1.0, ll.y));
+    double y = (copysign(1.0, ll.y) * (log((1.0 + latsin) / (1.0 - latsin)) / 2.0)) / M_PI;
     return {x, y};
  }
  
  
-float rad_to_deg(float val) {
-    return val * (180.0f / M_PI);
+ double rad_to_deg(double val) {
+    return val * (180.0 / M_PI);
 }
  
  
-vec2 world_to_lonlat(float wx, float wy) {
-    float lon = wx * 180.0f;
-    float lat = rad_to_deg(atan(sinh(wy * M_PI)));
+dvec2 world_to_lonlat(float wx, float wy) {
+    double lon = wx * 180.0f;
+    double lat = rad_to_deg(atan(sinh(wy * M_PI)));
     return {lon, lat};
 }
 
 
-vec2 world_to_tile(float wx, float wy, float z) {
-    float n = pow(2.0, floorf(z));
-    float tx = (( wx + 1.0f) / 2.0f) * n;
-    float ty = ((-wy + 1.0f) / 2.0f) * n;
-    return {floorf(tx), floorf(ty)};
+dvec2 world_to_tile(float wx, float wy, float z) {
+    double n = pow(2.0, floor(z));
+    double tx = (( wx + 1.0) / 2.0) * n;
+    double ty = ((-wy + 1.0) / 2.0) * n;
+    return {floor(tx), floor(ty)};
 }
 
 
-vec2 lonlat_to_tile(float lon, float lat, float z) {
-    vec2 w = lonlat_to_world(vec2(lon, lat));
+dvec2 lonlat_to_tile(float lon, float lat, float z) {
+    dvec2 w = lonlat_to_world(dvec2(lon, lat));
     return world_to_tile(w.x, w.y, z);
 }
 
 
-vec2 tile_to_lonlat(float tx, float ty, float tz) {   
-    vec2 w = tile_to_world(tx, ty, tz);
+dvec2 tile_to_lonlat(const dvec3& tile_coords) {   
+    dvec2 w = tile_to_world(tile_coords);
     return world_to_lonlat(w.x, w.y);
 }
 
 
-vec2 tile_to_world(float tx, float ty, float tz) {
-    double n = pow(2.0, floor(tz));
-    double x =   (tx / n) * 2.0 - 1.0;
-    double y = -((ty / n) * 2.0 - 1.0);
-    return {float(x), float(y)};
+dvec2 tile_to_world(const dvec3& t) {
+    double n = pow(2.0, floor(t.z));
+    double x =   (t.x / n) * 2.0 - 1.0;
+    double y = -((t.y / n) * 2.0 - 1.0);
+    return {x, y};
 }
 
 
 int64_t tile_to_index(float tx, float ty, float tz) {
     double i = (pow(4.0, tz) - 1.0) / 3.0;
     double n =  pow(2.0, tz);
-    return int64_t(i + (ty * n + tx));
+    return int64_t(round(i + (ty * n + tx)));
 }
 
 
 float haversine_m(float lat1, float lon1, float lat2, float lon2) {
-    float rlat1 = deg_to_rad(lat1);
-    float rlon1 = deg_to_rad(lon1);
-    float rlat2 = deg_to_rad(lat2);
-    float rlon2 = deg_to_rad(lon2);
-    float cl1 = cosf(rlat1);
-    float cl2 = cosf(rlat2);
-    float sl1 = sinf(rlat1);
-    float sl2 = sinf(rlat2);
-    float delta = rlon2 - rlon1;
-    float cdelta = cosf(delta);
-    float sdelta = sinf(delta);
-    float y = sqrtf(powf(cl2 * sdelta, 2.0f) + powf(cl1 * sl2 - sl1 * cl2 * cdelta, 2.0f));
-    float x = sl1 * sl2 + cl1 * cl2 * cdelta;
-    float ad = atan2f(y, x);
-    float dist = ad * R;
+    double rlat1 = deg_to_rad(lat1);
+    double rlon1 = deg_to_rad(lon1);
+    double rlat2 = deg_to_rad(lat2);
+    double rlon2 = deg_to_rad(lon2);
+    double cl1 = cos(rlat1);
+    double cl2 = cos(rlat2);
+    double sl1 = sin(rlat1);
+    double sl2 = sin(rlat2);
+    double delta = rlon2 - rlon1;
+    double cdelta = cos(delta);
+    double sdelta = sin(delta);
+    double y = sqrt(pow(cl2 * sdelta, 2.0f) + pow(cl1 * sl2 - sl1 * cl2 * cdelta, 2.0));
+    double x = sl1 * sl2 + cl1 * cl2 * cdelta;
+    double ad = atan2(y, x);
+    double dist = ad * R;
     return dist;
 }
