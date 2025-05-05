@@ -1,5 +1,10 @@
 language: cpp
-os: linux
+os:
+  - linux
+  - windows
+compiler:
+  - clang
+  - gcc
 script:
   - mkdir build
   - cmake -S . -B build
