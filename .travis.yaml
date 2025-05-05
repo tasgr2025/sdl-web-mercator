@@ -1,6 +1,6 @@
 language: cpp
+os: linux
 script:
   - mkdir build
   - cmake -S . -B build
   - make -F build/make
-  
