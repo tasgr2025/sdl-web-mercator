@@ -1,0 +1,6 @@
+language: cpp
+script:
+  - mkdir build
+  - cmake -S . -B build
+  - make -F build/make
+  
