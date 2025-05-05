@@ -314,7 +314,7 @@ bool update_cache(SDL_Renderer *render)
         if (cache.find(it.first) == cache.end()) {
             continue;
         }
-        cache[it.first]->set_texture_from_data(render, &it.second[0], it.second.size());
+        cache[it.first]->set_texture(render, it.second);
         idxs_erase.push_back(it.first);
     }
     for (const auto& idx: idxs_erase) {

@@ -15,7 +15,7 @@ public:
     ~SDLTile () { if (texture) SDL_DestroyTexture(texture); }
     SDLTile(Uint32 x0 = 0U, Uint32 y0 = 0U, Uint32 z0 = 0U, Uint32 t0 = 0U): x{x0}, y{y0}, z{z0}, tick{t0} {}
     std::string get_url(const std::string& base_url) { return std::vformat(base_url, std::make_format_args(x, y, z)); }
-    bool set_texture_from_data(SDL_Renderer *render, const char *data, const size_t len);
+    bool set_texture(SDL_Renderer *render, const std::string& data);
     SDL_Texture* get_texture() { return texture; }
     void set_tick(Uint32 tick) { this->tick = tick; }
     Uint32 get_tick() { return tick; }

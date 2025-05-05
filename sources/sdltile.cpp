@@ -1,8 +1,8 @@
 #include "sdltile.h"
 
 
-bool SDLTile::set_texture_from_data(SDL_Renderer *render, const char *data, const size_t len) {
-    SDL_RWops* rwop = SDL_RWFromConstMem(data, len);
+bool SDLTile::set_texture(SDL_Renderer *render, const std::string& data) {
+    SDL_RWops* rwop = SDL_RWFromConstMem(&data[0], data.size());
     if (!rwop) {
         return false;
     }
