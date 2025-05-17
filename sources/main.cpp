@@ -7,13 +7,13 @@ static const int IMG_INIT_EVERYTHING = IMG_INIT_JPG | IMG_INIT_PNG | IMG_INIT_TI
 static const Uint32 render_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE;
 
 /// @brief Размер поверхности для рисования
-vec2 canvas_size { 1280.0f, 768.0f };
+dvec2 canvas_size { 1280.0, 768.0 };
 
 /// @brief Текущая позиция WebMercator
 dvec3 xyz { 0.0, 0.0, 0.0 };
 
 /// @brief Размер плитки
-vec2 tile_size { 256.0f, 256.0f };
+dvec2 tile_size { 256.0, 256.0 };
 
 /// @brief Шаблон адреса для получения плиток
 std::string base_url{"https://tile.openstreetmap.org/{2}/{0}/{1}.png"};
@@ -37,20 +37,21 @@ dvec2 drag_pos { 0.0, 0.0 };
 bool rollover { false };
 
 /// @brief Загруженные плитки
-std::unordered_map<int64_t, SDLTile*> cache;
+std::unordered_map<uint64_t, SDLTile*> cache;
 
 /// @brief Очередь запросов плиток
-std::unordered_map<int64_t, ivec4> queue;
+std::unordered_map<uint64_t, ivec4> queue;
 
 /// @brief Данные изображений плиток
-std::unordered_map<int64_t, std::string> data;
+std::unordered_map<uint64_t, std::string> data;
 
 std::mutex mutex;
 std::mutex cv_mutex;
 std::condition_variable cv;
-bool resume_thread { false };
+bool cv_resume { false };
 std::atomic<bool> run_thread { true };
-std::thread* url_thread = nullptr;
+std::thread* url_thread { nullptr };
+
 
 void clean_cache() {
     for (auto pair: cache) {
@@ -60,8 +61,8 @@ void clean_cache() {
 }
 
 
-int64_t get_next_in_queue() {
-    int64_t idx = -1;
+uint64_t get_next_in_queue() {
+    uint64_t idx = -1;
     int tick = 0;
     for (const auto& item : queue) {
         if (item.second.w > tick) {
@@ -73,9 +74,9 @@ int64_t get_next_in_queue() {
 }
 
 
-int64_t get_next_in_cache() {
+uint64_t get_next_in_cache() {
     int tick = -1;
-    int64_t idx = 0;
+    uint64_t idx = 0;
     for (const auto& item : cache) {
         int item_tick = item.second->get_tick();
         if (item_tick > tick) {
@@ -95,14 +96,14 @@ void url_thread_proc(void* arg) {
         mutex.unlock();
         if (sz == 0) {
             std::unique_lock<std::mutex> lk(cv_mutex);
-            cv.wait(lk, []{ return resume_thread; });
-            resume_thread = false;
+            cv.wait(lk, []{ return cv_resume; });
+            cv_resume = false;
             lk.unlock();
             cv.notify_one();
             continue;
         }
         mutex.lock();
-        int64_t idx = get_next_in_queue();
+        uint64_t idx = get_next_in_queue();
         if (idx < 0) {
             mutex.unlock();
             continue;
@@ -128,19 +129,21 @@ void draw_map(SDL_Renderer* render) {
     double z = min(double(max_zoom), xyz.z);
     dvec2 t1 = screen_to_tile(z, xyz, canvas_size, {0.0, 0.0});
     dvec2 t2 = screen_to_tile(z, xyz, canvas_size, canvas_size) + dvec2{1.0, 1.0};
+    int a = 0;
     for (auto x = t1.x; x < t2.x; x += 1) {
         for (auto y = t1.y; y < t2.y; y += 1) {
-            draw_tile(render, x, y, z);
+            a += draw_tile(render, x, y, z);
         }
     }
+    printf("xyz:%0.3f,%0.3f,%0.3f кэш:%zd очередь:%zd нарисовано:%d\n", xyz.x, xyz.y, xyz.z, cache.size(), queue.size(), a);
     return;
 }
 
 
 bool draw_tile(SDL_Renderer* render, double tx, double ty, double z) {
     double tz = floor(z);
-    dvec2 p1 = tile_to_screen(xyz, canvas_size, vec3{tx,        ty,        z});
-    dvec2 p2 = tile_to_screen(xyz, canvas_size, vec3{tx + 1.0f, ty + 1.0f, z});
+    dvec2 p1 = tile_to_screen(xyz, canvas_size, dvec3{tx,       ty,       z});
+    dvec2 p2 = tile_to_screen(xyz, canvas_size, dvec3{tx + 1.0, ty + 1.0, z});
     SDLTile* tile = get_tile(tx, ty, tz);
     bool rc = false;
     if (tile) {
@@ -169,7 +172,7 @@ bool draw_tile(SDL_Renderer* render, double tx, double ty, double z) {
 }
 
 
-bool draw_subtile(SDL_Renderer* render, int tx, int ty, int tz, int origx, int origy, float origz) {
+bool draw_subtile(SDL_Renderer* render, int tx, int ty, int tz, int origx, int origy, double origz) {
     SDLTile* tile = get_tile(tx, ty, tz);
     if (!tile) {
         return false;
@@ -207,8 +210,8 @@ bool draw_subtile(SDL_Renderer* render, int tx, int ty, int tz, int origx, int o
 }
 
 
-SDLTile* get_tile(int x, int y, int z) {
-    int n = pow(2.0, z);
+SDLTile* get_tile(uint64_t x, uint64_t y, uint64_t z) {
+    uint64_t n = pow(2.0, z);
     if (x >= 0) {
         x %= n;
     }
@@ -222,7 +225,7 @@ SDLTile* get_tile(int x, int y, int z) {
         return nullptr;
     }
 
-    int64_t idx = tile_to_index(x, y, z);
+    uint64_t idx = tile_to_index(x, y, z);
     Uint32 tick = SDL_GetTicks();
 
     auto cache_item = cache.find(idx);
@@ -234,7 +237,7 @@ SDLTile* get_tile(int x, int y, int z) {
     mutex.lock();
     auto queue_item = queue.find(idx);
     if (queue_item == queue.end()) {
-        queue[idx] = ivec4(x, y, z, tick);
+        queue[idx] = ivec4{x, y, z, tick};
     }
     SDLTile* tile = new SDLTile(x, y, z, tick);
     cache[idx] = tile;
@@ -256,7 +259,7 @@ int event_handler(void *userdata, SDL_Event *event) {
 
     switch (event->type) {
     case SDL_MOUSEBUTTONDOWN:
-        dragging = (SDL_BUTTON(1) & ms) > 0;
+        dragging = (SDL_BUTTON(1) & ms) > 0U;
         drag_pos = screen_to_world(xyz, canvas_size, mp);
         break;
     case SDL_MOUSEBUTTONUP:
@@ -309,7 +312,7 @@ bool update_cache(SDL_Renderer *render)
         return false;
     }
 
-    std::vector<int64_t> idxs_erase;
+    std::vector<uint64_t> idxs_erase;
     for (const auto& it: data) {
         if (cache.find(it.first) == cache.end()) {
             continue;
@@ -358,7 +361,7 @@ void url_thread_stop() {
 
 void url_thread_resume() {
     {   std::lock_guard<std::mutex> lk(cv_mutex);
-        resume_thread = true; }
+        cv_resume = true; }
     cv.notify_one();
 }
 
@@ -367,11 +370,11 @@ int main(int argc, char* argv[]) { CPPTRACE_TRY
 {
     CLI::App app{ "Отображает карту в проекции WebMercator" };
     argv = app.ensure_utf8(argv);
-    app.add_option("--canvas-size",  canvas_size,             "Размер поверхности для отображения карты в пикселях по горизонтали и вертикали.")->expected(0, 2)->capture_default_str();
-    app.add_option("--tile-size",    tile_size,               "Размер плитки (фрагмента) карты в пикселях по горизонтали и вертикали.")->expected(0, 2)->capture_default_str();
-    app.add_option("--base-url",     base_url,                "Шаблон адреса для получения плиток где вместо {0}, {1}, {2} будут подставлены x, y, z соответственно.")->capture_default_str();
-    app.add_option("--zoom-step",    zoom_step,               "Шаг масштабирования.")->capture_default_str();
-    app.add_option("--max-zoom",     max_zoom,                "Максимальный масштаб.")->capture_default_str();
+    app.add_option("--canvas-size", canvas_size, "Размер поверхности для отображения карты в пикселях по горизонтали и вертикали.")->expected(0, 2)->capture_default_str();
+    app.add_option("--tile-size",   tile_size,   "Размер плитки (фрагмента) карты в пикселях по горизонтали и вертикали.")->expected(0, 2)->capture_default_str();
+    app.add_option("--base-url",    base_url,    "Шаблон адреса для получения плиток где вместо {0}, {1}, {2} будут подставлены x, y, z соответственно.")->capture_default_str();
+    app.add_option("--zoom-step",   zoom_step,   "Шаг масштабирования.")->capture_default_str();
+    app.add_option("--max-zoom",    max_zoom,    "Максимальный масштаб.")->capture_default_str();
     CLI11_PARSE(app, argc, argv);
  
     SDL_version ver;

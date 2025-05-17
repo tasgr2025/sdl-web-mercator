@@ -2,15 +2,14 @@
 
 using namespace glm;
 
+static const double R = 6372795.0;
+static double tile_width =  256.0;
+static double tile_height = 256.0;
+static double min_zoom = 0.0;   // TODO: убрать этот параметр
+static double max_zoom = 20.0;  // TODO: убрать этот параметр
 
-static float tile_width =  256.0f;
-static float tile_height = 256.0f;
-static const float R = 6372795.0f;
-static float min_zoom = 0.0f;  // TODO: убрать этот параметр
-static float max_zoom = 20.0;  // TODO: убрать этот параметр
 
-
-void set_zoom(dvec3& xyz, const dvec2& canvas_size, float zoom, const ivec2& pivot) {
+void set_zoom(dvec3& xyz, const dvec2& canvas_size, double zoom, const ivec2& pivot) {
     dvec2 p1 = screen_to_world(xyz, canvas_size, pivot);
     xyz.z = clamp(zoom, max_zoom, min_zoom);
     dvec2 p2 = screen_to_world(xyz, canvas_size, pivot);
@@ -19,7 +18,7 @@ void set_zoom(dvec3& xyz, const dvec2& canvas_size, float zoom, const ivec2& piv
 }
 
 
-void multiply_zoom(dvec3& xyz, const dvec2& canvas_size, float multiplier, const ivec2& pivot) {
+void multiply_zoom(dvec3& xyz, const dvec2& canvas_size, double multiplier, const ivec2& pivot) {
     dvec2 p1 = screen_to_world(xyz, canvas_size, pivot);
     xyz.z = clamp(xyz.z * multiplier, double(min_zoom), double(max_zoom));
     dvec2 p2 = screen_to_world(xyz, canvas_size, pivot);
@@ -28,7 +27,7 @@ void multiply_zoom(dvec3& xyz, const dvec2& canvas_size, float multiplier, const
 }
 
 
-void step_zoom(dvec3& xyz, const dvec2& canvas_size, float step, const ivec2& pivot) {
+void step_zoom(dvec3& xyz, const dvec2& canvas_size, double step, const ivec2& pivot) {
     dvec2 p1 = screen_to_world(xyz, canvas_size, pivot);
     xyz.z = clamp(xyz.z + step, double(min_zoom), double(max_zoom));
     dvec2 p2 = screen_to_world(xyz, canvas_size, pivot);
@@ -57,7 +56,7 @@ dvec2 screen_to_world(const dvec3& xyz, const dvec2& canvas_size, const ivec2 &s
 }
 
 
-dvec2 screen_to_tile(float z, const dvec3& xyz, const dvec2& canvas_size, const dvec2& screen_coords) {
+dvec2 screen_to_tile(double z, const dvec3& xyz, const dvec2& canvas_size, const dvec2& screen_coords) {
     dvec2 world = screen_to_world(xyz, canvas_size, screen_coords);
     return world_to_tile(world.x, world.y, z);
 }
@@ -121,14 +120,14 @@ dvec2 lonlat_to_world(const dvec2& ll) {
 }
  
  
-dvec2 world_to_lonlat(float wx, float wy) {
+dvec2 world_to_lonlat(double wx, double wy) {
     double lon = wx * 180.0f;
     double lat = rad_to_deg(atan(sinh(wy * M_PI)));
     return {lon, lat};
 }
 
 
-dvec2 world_to_tile(float wx, float wy, float z) {
+dvec2 world_to_tile(double wx, double wy, double z) {
     double n = pow(2.0, floor(z));
     double tx = (( wx + 1.0) / 2.0) * n;
     double ty = ((-wy + 1.0) / 2.0) * n;
@@ -136,7 +135,7 @@ dvec2 world_to_tile(float wx, float wy, float z) {
 }
 
 
-dvec2 lonlat_to_tile(float lon, float lat, float z) {
+dvec2 lonlat_to_tile(double lon, double lat, double z) {
     dvec2 w = lonlat_to_world(dvec2(lon, lat));
     return world_to_tile(w.x, w.y, z);
 }
@@ -156,14 +155,14 @@ dvec2 tile_to_world(const dvec3& t) {
 }
 
 
-int64_t tile_to_index(float tx, float ty, float tz) {
+uint64_t tile_to_index(double tx, double ty, double tz) {
     double i = (pow(4.0, tz) - 1.0) / 3.0;
     double n =  pow(2.0, tz);
-    return int64_t(round(i + (ty * n + tx)));
+    return uint64_t(round(i + (ty * n + tx)));
 }
 
 
-float haversine_m(float lat1, float lon1, float lat2, float lon2) {
+double haversine_m(double lat1, double lon1, double lat2, double lon2) {
     double rlat1 = deg_to_rad(lat1);
     double rlon1 = deg_to_rad(lon1);
     double rlat2 = deg_to_rad(lat2);
@@ -175,7 +174,7 @@ float haversine_m(float lat1, float lon1, float lat2, float lon2) {
     double delta = rlon2 - rlon1;
     double cdelta = cos(delta);
     double sdelta = sin(delta);
-    double y = sqrt(pow(cl2 * sdelta, 2.0f) + pow(cl1 * sl2 - sl1 * cl2 * cdelta, 2.0));
+    double y = sqrt(pow(cl2 * sdelta, 2.0) + pow(cl1 * sl2 - sl1 * cl2 * cdelta, 2.0));
     double x = sl1 * sl2 + cl1 * cl2 * cdelta;
     double ad = atan2(y, x);
     double dist = ad * R;

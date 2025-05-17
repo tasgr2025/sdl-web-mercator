@@ -12,7 +12,7 @@ using namespace glm;
 /// @param canvas_size Размер в пикселях поверхности для рисования
 /// @param zoom 
 /// @param pivot 
-void set_zoom(dvec3& xyz, const dvec2& canvas_size, float zoom, const ivec2& pivot);
+void set_zoom(dvec3& xyz, const dvec2& canvas_size, double zoom, const ivec2& pivot);
 
 
 /// @brief Умножает масштаб вокруг заданной точки
@@ -20,7 +20,7 @@ void set_zoom(dvec3& xyz, const dvec2& canvas_size, float zoom, const ivec2& piv
 /// @param canvas_size Размер в пикселях поверхности для рисования
 /// @param multiplier Множитель масштаба
 /// @param pivot Заданная точка
-void multiply_zoom(dvec3& xyz, const dvec2& canvas_size, float multiplier, const ivec2& pivot);
+void multiply_zoom(dvec3& xyz, const dvec2& canvas_size, double multiplier, const ivec2& pivot);
 
 
 /// @brief Увеличивает масштаб вокруг заданной точки
@@ -28,7 +28,7 @@ void multiply_zoom(dvec3& xyz, const dvec2& canvas_size, float multiplier, const
 /// @param canvas_size Размер в пикселях поверхности для рисования
 /// @param multiplier Шаг изменения масштаба
 /// @param pivot Заданная точка
-void step_zoom(dvec3& xyz, const dvec2& canvas_size, float step, const ivec2& pivot);
+void step_zoom(dvec3& xyz, const dvec2& canvas_size, double step, const ivec2& pivot);
 
 
 /// @brief Возвращает размер плитки
@@ -53,7 +53,7 @@ double deg_to_rad(double v);
 /// @param ty Индекс плитки по оси Y.
 /// @param tz Уровень детализации плитки.
 /// @return Индекс одномерного массива.
-int64_t tile_to_index(float tx, float ty, float tz);
+uint64_t tile_to_index(double tx, double ty, double tz);
 
 
 /// @brief Преобразует долготу и широту в индекс плитки .
@@ -61,7 +61,7 @@ int64_t tile_to_index(float tx, float ty, float tz);
 /// @param lat Широта.
 /// @param z Уровень детализация (zoom level).
 /// @return xy-индекс плитки.
-dvec2 lonlat_to_tile (float lon, float lat, float z);
+dvec2 lonlat_to_tile (double lon, double lat, double z);
 
 
 /// @brief Преобразует xyz-индекс плитки в долготу и широту.
@@ -80,7 +80,7 @@ dvec2 tile_to_world (const dvec3& tile_coords);
 /// @param wx 
 /// @param wy 
 /// @return 
-dvec2 world_to_lonlat(float wx, float wy);
+dvec2 world_to_lonlat(double wx, double wy);
 
 
 /// @brief 
@@ -88,7 +88,7 @@ dvec2 world_to_lonlat(float wx, float wy);
 /// @param wy 
 /// @param z 
 /// @return 
-dvec2 world_to_tile(float wx, float wy, float z);
+dvec2 world_to_tile(double wx, double wy, double z);
 
 
 /// @brief Преобразует мировые координат в координаты экрана.
@@ -128,7 +128,7 @@ dvec2 screen_to_world  (const dvec3 &xyz, const dvec2 &canvas_size, const ivec2 
 /// @param canvas_size 
 /// @param screen_coords 
 /// @return 
-dvec2 screen_to_tile   (float z, const dvec3 &xyz, const dvec2 &canvas_size, const dvec2 &screen_coords);
+dvec2 screen_to_tile   (double z, const dvec3 &xyz, const dvec2 &canvas_size, const dvec2 &screen_coords);
 
 
 /// @brief 
@@ -145,6 +145,6 @@ dvec2 tile_to_screen   (const dvec3 &xyz, const dvec2 &canvas_size, const dvec3 
 /// @param lon2 Долгота точки 2
 /// @param lat2 Широта точки 2
 /// @return Расстояние в метрах
-float haversine_m(float lon1, float lat1, float lon2, float lat2);
+double haversine_m(double lon1, double lat1, double lon2, double lat2);
 
 #endif // TILE_TOOLS_H

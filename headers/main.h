@@ -19,11 +19,11 @@
 
 /// @brief Возвращает индекс плитки самой новой по времени из очереди загрузки
 /// @return Одномерный индекс плитки
-int64_t get_next_in_queue();
+uint64_t get_next_in_queue();
 
 /// @brief Возвращает индекс плитки самой новой по времени из кэша
 /// @return Одномерный индекс плитки
-int64_t get_next_in_cache();
+uint64_t get_next_in_cache();
 
 /// @brief Обработчик событий SDL
 /// @param userdata Указатель на произвольные данные
@@ -42,14 +42,14 @@ void queue_redraw();
 /// @param origy 
 /// @param origz 
 /// @return 
-bool draw_subtile(SDL_Renderer* render, int tx, int ty, int tz, int origx, int origy, float origz);
+bool draw_subtile(SDL_Renderer* render, int tx, int ty, int tz, int origx, int origy, double origz);
 
 /// @brief Получить плитку из всех возможных источников
 /// @param x 
 /// @param y 
 /// @param z 
 /// @return 
-SDLTile* get_tile(int x, int y, int z);
+SDLTile* get_tile(uint64_t x, uint64_t y, uint64_t z);
 
 /// @brief 
 /// @param render 
