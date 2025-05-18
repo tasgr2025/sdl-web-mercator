@@ -50,7 +50,8 @@ std::mutex cv_mutex;
 std::condition_variable cv;
 bool cv_resume { false };
 std::atomic<bool> run_thread { true };
-std::thread* url_thread { nullptr };
+std::vector<std::thread> url_threads;
+size_t threads_count = 4;
 
 
 void clean_cache() {
@@ -74,29 +75,39 @@ uint64_t get_next_in_queue() {
 }
 
 
+void wait_resume() {
+    std::unique_lock<std::mutex> lk(cv_mutex);
+    cv.wait(lk, []{ return cv_resume; });
+    cv_resume = !run_thread;
+    lk.unlock();
+    cv.notify_one();
+}
+
+
 void url_thread_proc(void* arg) {
     while (run_thread) {
         size_t sz = 0U;
+        uint64_t idx = -1;
+        ivec4 t {0, 0, 0, 0};
         mutex.lock();
         sz = queue.size();
-        mutex.unlock();
         if (sz == 0) {
-            std::unique_lock<std::mutex> lk(cv_mutex);
-            cv.wait(lk, []{ return cv_resume; });
-            cv_resume = false;
-            lk.unlock();
-            cv.notify_one();
+            mutex.unlock();
+            wait_resume();
             continue;
         }
-        mutex.lock();
-        uint64_t idx = get_next_in_queue();
-        if (idx < 0) {
+        else {
+            idx = get_next_in_queue();
+        }
+        
+        if (idx == -1) {
             mutex.unlock();
             continue;
         }
-        ivec4 t = queue[idx];
+        t = queue[idx];
         queue.erase(idx);
         mutex.unlock();
+        
         auto args = std::make_format_args(t.x, t.y, t.z);
         std::string url = std::vformat(base_url, args);
         std::string img;
@@ -339,9 +350,11 @@ void main_loop(SDL_Renderer *render)
 
 
 void url_thread_stop() {
-    url_thread_resume();
     run_thread = false;
-    url_thread->join();
+    url_thread_resume();
+    for (auto& thread : url_threads) {
+        thread.join();
+    }
 }
 
 
@@ -361,6 +374,7 @@ int main(int argc, char* argv[]) { CPPTRACE_TRY
     app.add_option("--base-url",    base_url,    "Шаблон адреса для получения плиток где вместо {0}, {1}, {2} будут подставлены x, y, z соответственно.")->capture_default_str();
     app.add_option("--zoom-step",   zoom_step,   "Шаг масштабирования.")->capture_default_str();
     app.add_option("--max-zoom",    max_zoom,    "Максимальный масштаб.")->capture_default_str();
+    app.add_option("--threads-count", threads_count, "Количество потоков для загрузки")->capture_default_str();
     CLI11_PARSE(app, argc, argv);
  
     SDL_version ver;
@@ -384,8 +398,9 @@ int main(int argc, char* argv[]) { CPPTRACE_TRY
         warn_on_sdl_error();
     }
 
-    std::thread new_thread {url_thread_proc, nullptr};
-    url_thread = &new_thread;
+    for (size_t i = 0; i < threads_count; i ++) {
+        url_threads.emplace_back(url_thread_proc, nullptr);
+    }
     SDL_AddEventWatch(event_handler, nullptr);
     main_loop(render);
     SDL_DestroyWindow(sdlw);

@@ -65,6 +65,9 @@ void clean_cache();
 /// @param render
 void main_loop(SDL_Renderer *render);
 
+/// @brief Ожидает команды продолжить выполнение
+void wait_resume();
+
 /// @brief 
 /// @param arg 
 void url_thread_proc(void* arg);
