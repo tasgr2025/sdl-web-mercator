@@ -7,10 +7,10 @@ bool SDLTile::set_texture(SDL_Renderer *render, const std::string& data) {
         return false;
     }
     SDL_Surface *surface = IMG_Load_RW(rwop, 0);
+    SDL_RWclose(rwop);
     if (!surface) {
         return false;
     }
-    SDL_RWclose(rwop);
 
     if (texture) {
         SDL_DestroyTexture(texture);
