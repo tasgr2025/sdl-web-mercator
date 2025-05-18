@@ -17,8 +17,8 @@ public:
     std::string get_url(const std::string& base_url) { return std::vformat(base_url, std::make_format_args(x, y, z)); }
     bool set_texture(SDL_Renderer *render, const std::string& data);
     SDL_Texture* get_texture() { return texture; }
-    void set_tick(Uint32 tick) { this->tick = tick; }
-    Uint32 get_tick() { return tick; }
+    void set_tick(Uint64 tick) { this->tick = tick; }
+    Uint64 get_tick() { return tick; }
     SDL_Point get_size();
     Uint64 get_zoom() { return z; }
 };
