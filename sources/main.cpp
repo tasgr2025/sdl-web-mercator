@@ -74,20 +74,6 @@ uint64_t get_next_in_queue() {
 }
 
 
-uint64_t get_next_in_cache() {
-    int tick = -1;
-    uint64_t idx = 0;
-    for (const auto& item : cache) {
-        int item_tick = item.second->get_tick();
-        if (item_tick > tick) {
-            tick = item_tick;
-            idx = item.first;
-        }
-    }
-    return idx;
-}
-
-
 void url_thread_proc(void* arg) {
     while (run_thread) {
         size_t sz = 0U;
