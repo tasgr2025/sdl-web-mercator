@@ -4,7 +4,7 @@
 static const int IMG_INIT_EVERYTHING = IMG_INIT_JPG | IMG_INIT_PNG | IMG_INIT_TIF | IMG_INIT_WEBP | IMG_INIT_JXL | IMG_INIT_AVIF;
 
 /// @brief Флаги инициализации SDL
-static const Uint32 render_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE;
+static const Uint32 render_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE;
 
 /// @brief Размер поверхности для рисования
 dvec2 canvas_size { 1280.0, 768.0 };
@@ -88,7 +88,6 @@ void url_thread_proc(void* arg) {
     while (run_thread) {
         size_t sz = 0U;
         uint64_t idx = -1;
-        ivec4 t {0, 0, 0, 0};
         mutex.lock();
         sz = queue.size();
         if (sz == 0) {
@@ -104,7 +103,7 @@ void url_thread_proc(void* arg) {
             mutex.unlock();
             continue;
         }
-        t = queue[idx];
+        ivec4 t = queue[idx];
         queue.erase(idx);
         mutex.unlock();
         
